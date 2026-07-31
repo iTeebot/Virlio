@@ -15,6 +15,8 @@ export async function findByOwner(ownerId: string) {
   return db.query.brands.findMany({ where: and(eq(brands.owner_id, ownerId), isNull(brands.deleted_at)) });
 }
 
+export const findByOwnerId = findByOwner;
+
 export async function create(data: Partial<Brand>) {
   const [brand] = await db.insert(brands).values(data as any).returning();
   return brand;

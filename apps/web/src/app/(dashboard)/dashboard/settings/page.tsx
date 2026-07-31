@@ -125,6 +125,7 @@ export default function SettingsPage() {
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [country, setCountry] = useState("");
+  const [website, setWebsite] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // User Data Deletion States
@@ -168,6 +169,20 @@ export default function SettingsPage() {
           setConnectedAccounts(data.profileScore.connectedProviders || []);
         }
       }
+
+      // Fetch user profile info
+      if (session?.user?.username) {
+        const uRes = await fetch(`/api/v1/users/check-username?username=${encodeURIComponent(session.user.username)}`);
+        const uJson = await uRes.json();
+        if (uJson.success && uJson.data?.user) {
+          const u = uJson.data.user;
+          if (u.name) setName(u.name);
+          if (u.username) setUsername(u.username);
+          if (u.bio) setBio(u.bio);
+          if (u.country) setCountry(u.country);
+          if (u.website) setWebsite(u.website);
+        }
+      }
     } catch (err) {
       toast.error("Failed to load settings data", "Network Error");
     } finally {
@@ -179,8 +194,8 @@ export default function SettingsPage() {
     if (status === "authenticated") {
       loadSettingsData();
       if (session?.user) {
-        setName(session.user.name || "");
-        setUsername(session.user.username || "");
+        setName((prev) => prev || session.user.name || "");
+        setUsername((prev) => prev || session.user.username || "");
       }
     }
   }, [status, session]);
@@ -228,11 +243,25 @@ export default function SettingsPage() {
     e.preventDefault();
     setIsSavingProfile(true);
 
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/v1/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, username, bio, country, website }),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        toast.success("Profile location and information saved successfully!", "Profile Updated");
+        loadSettingsData();
+      } else {
+        toast.error(json.error || "Failed to update profile", "Error");
+      }
+    } catch (err) {
+      toast.error("Failed to save profile changes.", "Network Error");
+    } finally {
       setIsSavingProfile(false);
-      toast.success("Profile preferences saved successfully!", "Profile Updated");
-      loadSettingsData();
-    }, 600);
+    }
   };
 
   const currentScore = profileScore?.score ?? 0;
@@ -483,6 +512,34 @@ export default function SettingsPage() {
               disabled
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-xs font-medium text-gray-500 cursor-not-allowed"
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Location / Country
+              </label>
+              <input
+                type="text"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="United States, Pakistan, Germany..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-medium text-gray-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Website / Social Link
+              </label>
+              <input
+                type="text"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://yourbrand.com"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-medium text-gray-900 focus:outline-none focus:border-blue-600"
+              />
+            </div>
           </div>
 
           <div>

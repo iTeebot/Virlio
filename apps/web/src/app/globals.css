@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-accent: #ff6b35;
+  --color-accent-hover: #ea580c;
+  --color-surface: #fafafa;
+  --color-border: #e5e7eb;
+  --color-heading: #111827;
+  --color-body: #4b5563;
+  --color-muted: #6b7280;
+  --color-success: #22c55e;
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #111827;
+}
+
+body {
+  background-color: transparent;
+  color: #4b5563;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Landing Page Texture - Handled dynamically by SiteBackground component */
+.virlio-landing-bg {
+  background-color: transparent;
+}
+
+/* Card & Surface Utilities - Clean borders, subtle shadows, NO GRADIENTS, NO GLASSMORPHISM */
+.virlio-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.virlio-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.virlio-surface {
+  background-color: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+}
+
+.sticky-header {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}

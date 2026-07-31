@@ -1,0 +1,45 @@
+import { pgTable, text, timestamp, integer, uuid, uniqueIndex, index, jsonb } from "drizzle-orm/pg-core";
+import { isNull } from "drizzle-orm";
+import { users } from "./auth";
+import { visibilityEnum, moderationStatusEnum } from "./enums";
+
+export const templates = pgTable("templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull(),
+  description: text("description"),
+  category: text("category"),
+  subcategory: text("subcategory"),
+  language: text("language"),
+  country: text("country"),
+  tags: jsonb("tags"),
+  visibility: visibilityEnum("visibility").default("public"),
+  moderation_status: moderationStatusEnum("moderation_status").default("pending"),
+  approval_confidence: integer("approval_confidence").default(0),
+  approval_metadata: jsonb("approval_metadata"),
+  original_source: text("original_source"),
+  license: text("license"),
+  ai_summary: text("ai_summary"),
+  ai_tags: jsonb("ai_tags"),
+  duplicate_group: text("duplicate_group"),
+  cloudinary_public_id: text("cloudinary_public_id"),
+  cloudinary_secure_url: text("cloudinary_secure_url"),
+  image_width: integer("image_width"),
+  image_height: integer("image_height"),
+  image_format: text("image_format"),
+  image_bytes: integer("image_bytes"),
+  public_score: integer("public_score").default(0),
+  trending_score: integer("trending_score").default(0),
+  uploaded_by: uuid("uploaded_by").notNull().references(() => users.id),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+  deleted_at: timestamp("deleted_at", { mode: "date", withTimezone: true }),
+  created_by: uuid("created_by").references(() => users.id),
+  updated_by: uuid("updated_by").references(() => users.id),
+}, (table) => ({
+  slugIdx: uniqueIndex("templates_slug_idx").on(table.slug).where(isNull(table.deleted_at)),
+  categoryIdx: index("templates_category_idx").on(table.category),
+  uploadedByIdx: index("templates_uploaded_by_idx").on(table.uploaded_by),
+  moderationStatusIdx: index("templates_moderation_status_idx").on(table.moderation_status),
+  trendingScoreIdx: index("templates_trending_score_idx").on(table.trending_score),
+}));

@@ -1,0 +1,16 @@
+export * as authService from "./auth.service";
+export * as userService from "./user.service";
+export * as brandService from "./brand.service";
+export * as templateService from "./template.service";
+export * as memeService from "./meme.service";
+export * as voteService from "./vote.service";
+export * as followService from "./follow.service";
+export * as reportService from "./report.service";
+export * as gamificationService from "./gamification.service";
+export * as activityService from "./activity.service";
+export * as notificationService from "./notification.service";
+export * as statsService from "./stats.service";
+export * as storageService from "./storage.service";
+export * as exploreService from "./explore.service";
+export * as authorizationService from "./authorization.service";
+

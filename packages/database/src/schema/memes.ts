@@ -1,0 +1,47 @@
+import { pgTable, text, timestamp, integer, uuid, index, jsonb } from "drizzle-orm/pg-core";
+import { users } from "./auth";
+import { brands } from "./brands";
+import { templates } from "./templates";
+import { visibilityEnum, moderationStatusEnum } from "./enums";
+
+export const memes = pgTable("memes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  brand_id: uuid("brand_id").notNull().references(() => brands.id),
+  template_id: uuid("template_id").references(() => templates.id),
+  generator_id: uuid("generator_id").notNull().references(() => users.id),
+  prompt: text("prompt"),
+  generated_caption: text("generated_caption"),
+  generated_hashtags: jsonb("generated_hashtags"),
+  visibility: visibilityEnum("visibility").default("public"),
+  cloudinary_public_id: text("cloudinary_public_id"),
+  cloudinary_secure_url: text("cloudinary_secure_url"),
+  image_width: integer("image_width"),
+  image_height: integer("image_height"),
+  image_format: text("image_format"),
+  image_bytes: integer("image_bytes"),
+  generation_provider: text("generation_provider"),
+  generation_model: text("generation_model"),
+  generation_cost_cents: integer("generation_cost_cents"),
+  generation_duration_ms: integer("generation_duration_ms"),
+  generation_timestamp: timestamp("generation_timestamp", { mode: "date", withTimezone: true }),
+  engagement_score: integer("engagement_score").default(0),
+  approval_status: moderationStatusEnum("approval_status").default("pending"),
+  facebook_url: text("facebook_url"),
+  instagram_url: text("instagram_url"),
+  linkedin_url: text("linkedin_url"),
+  x_url: text("x_url"),
+  tiktok_url: text("tiktok_url"),
+  publish_timestamp: timestamp("publish_timestamp", { mode: "date", withTimezone: true }),
+  schedule_timestamp: timestamp("schedule_timestamp", { mode: "date", withTimezone: true }),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+  deleted_at: timestamp("deleted_at", { mode: "date", withTimezone: true }),
+  created_by: uuid("created_by").references(() => users.id),
+  updated_by: uuid("updated_by").references(() => users.id),
+}, (table) => ({
+  brandIdIdx: index("memes_brand_id_idx").on(table.brand_id),
+  templateIdIdx: index("memes_template_id_idx").on(table.template_id),
+  generatorIdIdx: index("memes_generator_id_idx").on(table.generator_id),
+  visibilityIdx: index("memes_visibility_idx").on(table.visibility),
+  engagementScoreIdx: index("memes_engagement_score_idx").on(table.engagement_score),
+}));

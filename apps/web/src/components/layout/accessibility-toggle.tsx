@@ -15,7 +15,7 @@ export function AccessibilityFloatingToggle() {
     if (nextState) {
       toast.info("Animated background tiles enabled.", "Background Motion");
     } else {
-      toast.info("Motion disabled. Rendering static bg.png texture.", "Background Motion");
+      toast.info("Motion disabled. Static background active.", "Background Motion");
     }
   };
 
@@ -58,9 +58,9 @@ export function AccessibilityFloatingToggle() {
                 <EyeOff className="w-4 h-4 text-amber-600 shrink-0" />
               )}
               <div className="flex flex-col text-left">
-                <span>{animationsEnabled ? "Animated Tiles" : "Static Texture"}</span>
+                <span>{animationsEnabled ? "Animated Tiles" : "Static Background"}</span>
                 <span className="text-[10px] font-normal opacity-80">
-                  {animationsEnabled ? "Interactive motion" : "Renders bg.png image"}
+                  {animationsEnabled ? "Interactive motion" : "Static texture background"}
                 </span>
               </div>
             </div>
@@ -87,7 +87,7 @@ export function AccessibilityFloatingToggle() {
         ) : (
           <>
             <EyeOff className="w-4 h-4 text-amber-600 shrink-0" />
-            <span className="hidden sm:inline">bg.png Active</span>
+            <span className="hidden sm:inline">Static Bg Active</span>
           </>
         )}
       </button>

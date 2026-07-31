@@ -13,10 +13,10 @@ export function AppPurposeSection() {
             <span>Verified Application Purpose & Data Privacy</span>
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            About Virlio AI Meme Generator
+            About Virlio
           </h2>
-          <p className="mt-3 text-base text-gray-600 leading-relaxed">
-            Virlio is an AI-powered content platform engineered to help verified businesses and digital creators build brand awareness through high-converting marketing memes.
+          <p className="mt-3 text-base text-gray-600 leading-relaxed font-medium">
+            Virlio helps businesses and creators create branded memes and social media content with AI. Create content from templates, customize it to your brand, generate AI-assisted captions, and prepare content for your social channels.
           </p>
         </div>
 

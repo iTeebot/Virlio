@@ -18,17 +18,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
-  title: "Virlio — AI Meme Generator for Brands & Businesses",
-  description: "Turn your brand into viral content with Virlio. Verified business profiles, community meme templates, AI moderation, and social publishing.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://virlio.iteebot.com"),
+  title: "Virlio — AI-Powered Meme & Social Content Platform",
+  description: "Virlio helps businesses and creators create branded memes and social media content with AI. Create content from templates, customize it to your brand, generate AI-assisted captions, and prepare content for your social channels.",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/images/favicon.ico",
     apple: "/images/favicon.ico",
   },
   openGraph: {
-    title: "Virlio — AI Meme Generator for Brands & Businesses",
-    description: "Turn your brand into viral content with AI meme generation, verified profiles, and automated growth suggestions.",
+    title: "Virlio — AI-Powered Meme & Social Content Platform",
+    description: "Virlio helps businesses and creators create branded memes and social media content with AI. Create content from templates, customize it to your brand, generate AI-assisted captions, and prepare content for your social channels.",
+    url: "https://virlio.iteebot.com",
+    siteName: "Virlio",
     images: ["/images/social.png"],
   },
 };

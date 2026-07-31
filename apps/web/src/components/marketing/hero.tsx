@@ -10,18 +10,22 @@ export function Hero() {
         {/* Top Badge */}
         <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1 text-xs font-semibold text-blue-700 mb-8">
           <Zap className="w-3.5 h-3.5 text-blue-600" />
-          <span>Virlio — The #1 AI Meme Generator Built for Verified Businesses</span>
+          <span>Virlio — AI-Powered Meme & Social Content Platform</span>
         </div>
 
-        {/* H1 SEO Headline */}
-        <h1 className="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight text-gray-900 sm:text-6xl lg:text-6xl leading-tight">
-          Virlio AI Meme Generator:{" "}
-          <span className="text-blue-600">Turn Your Brand Into Viral Content</span>
-        </h1>
+        {/* Product Name & H1 SEO Headline */}
+        <div className="mx-auto max-w-4xl">
+          <span className="block text-4xl sm:text-6xl font-black tracking-tight text-blue-600 mb-2">
+            Virlio
+          </span>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-5xl leading-tight">
+            AI-Powered Meme &amp; Social Content Platform
+          </h1>
+        </div>
 
-        {/* Supporting Paragraph */}
-        <p className="mx-auto mt-6 max-w-3xl text-lg text-gray-600 leading-relaxed">
-          Virlio is an AI-powered viral content and meme generation platform for verified businesses and digital creators. Build your brand profile, discover crowdsourced meme templates, generate AI-optimized captions, and automate social media growth safely.
+        {/* Plain Language Purpose Statement */}
+        <p className="mx-auto mt-6 max-w-3xl text-lg text-gray-600 leading-relaxed font-medium">
+          Virlio helps businesses and creators create branded memes and social media content with AI. Create content from templates, customize it to your brand, generate AI-assisted captions, and prepare content for your social channels.
         </p>
 
         {/* Primary & Secondary CTAs */}

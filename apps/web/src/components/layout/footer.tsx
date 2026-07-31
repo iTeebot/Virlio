@@ -41,13 +41,13 @@ export function Footer() {
       ],
     },
     {
-      title: "Legal",
+      title: "Legal & Privacy",
       links: [
         { name: "Privacy Policy", href: "/privacy" },
         { name: "Terms of Service", href: "/terms" },
-        { name: "Security & Safety", href: "/security" },
-        { name: "Cookie Preferences", href: "/cookies" },
-        { name: "DMCA Policy", href: "/dmca" },
+        { name: "User Data Deletion", href: "/data-deletion" },
+        { name: "About Virlio", href: "/#about-virlio" },
+        { name: "Contact Support", href: "/pricing" },
       ],
     },
     {
@@ -76,23 +76,22 @@ export function Footer() {
     <footer className="bg-gray-50 border-t border-gray-200 text-gray-600">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-12">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
-          {/* Brand & Prominent Vertical Logo Column */}
+          {/* Brand & Prominent Logo Column */}
           <div className="lg:col-span-4 space-y-4">
             <Link href="/" className="inline-block">
-              {/* Prominent, large vertical logo container */}
-              <div className="relative h-28 w-56 sm:h-32 sm:w-64">
+              <div className="relative h-24 w-52 sm:h-28 sm:w-60">
                 <Image
                   src="/images/logo-vertical.png"
-                  alt="Virlio Vertical Logo"
+                  alt="Virlio Logo"
                   fill
-                  sizes="(max-width: 768px) 220px, 260px"
+                  sizes="(max-width: 768px) 200px, 240px"
                   className="object-contain object-left"
                 />
               </div>
             </Link>
 
-            <p className="text-sm text-gray-600 max-w-sm leading-relaxed">
-              Virlio is Teebot&apos;s AI-powered meme generation platform for verified businesses. Free forever for core usage. Professional software engineering and digital transformation powered by Teebot.
+            <p className="text-xs sm:text-sm text-gray-600 max-w-sm leading-relaxed">
+              Virlio helps businesses and creators create branded memes and social media content with AI. Create content from templates, customize it to your brand, generate AI-assisted captions, and prepare content for your social channels.
             </p>
 
             <div className="flex items-center gap-2 text-xs text-gray-500 pt-2">

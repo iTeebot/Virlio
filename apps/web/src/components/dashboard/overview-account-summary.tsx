@@ -76,7 +76,7 @@ export function OverviewAccountSummary({ user }: OverviewAccountSummaryProps) {
       <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
         <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>PostgreSQL Active</span>
+          <span>Account Verified</span>
         </span>
         <span className="capitalize font-semibold text-gray-700">
           Status: {user.account_status || "Active"}

@@ -20,7 +20,7 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
 
-  NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
+  NEXT_PUBLIC_APP_URL: z.string().default("https://virlio.iteebot.com"),
 });
 
 const _env = envSchema.safeParse(process.env);
@@ -29,7 +29,7 @@ const _env = envSchema.safeParse(process.env);
 export const env = {
   DATABASE_URL: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/virlio",
   AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "dev-auth-secret-key-32-chars-long",
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000",
+  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://virlio.iteebot.com",
 
   AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_AUTH_GOOGLE_ID,
   AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET || process.env.NEXT_PUBLIC_AUTH_GOOGLE_SECRET,

@@ -23,18 +23,21 @@ export function Header() {
     <header className="sticky top-3 sm:top-5 z-50 w-full px-4 sm:px-6 lg:px-8">
       {/* Floating Geometric Header Navbar Container */}
       <div className="mx-auto max-w-7xl rounded-2xl border border-gray-200 bg-white/95 backdrop-blur-md shadow-sm px-4 sm:px-6 h-20 flex items-center justify-between">
-        {/* Brand Logo - Large Horizontal Logo */}
+        {/* Brand Logo - Large Horizontal Logo with explicit readable app name */}
         <Link href="/" className="flex items-center gap-3 shrink-0">
-          <div className="relative h-16 w-52 sm:w-60">
+          <div className="relative h-12 w-40 sm:h-14 sm:w-48">
             <Image
               src="/images/logo-horizontal.png"
-              alt="Virlio Horizontal Logo"
+              alt="Virlio AI Meme Generator"
               fill
-              sizes="(max-width: 768px) 200px, 240px"
+              sizes="(max-width: 768px) 160px, 200px"
               className="object-contain object-left"
               priority
             />
           </div>
+          <span className="text-xl font-extrabold text-gray-900 tracking-tight hidden sm:inline-block border-l border-gray-200 pl-3">
+            Virlio
+          </span>
         </Link>
 
         {/* Desktop Navigation Links - Single-line whitespace-nowrap */}

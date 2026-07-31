@@ -10,18 +10,18 @@ export function Hero() {
         {/* Top Badge */}
         <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1 text-xs font-semibold text-blue-700 mb-8">
           <Zap className="w-3.5 h-3.5 text-blue-600" />
-          <span>The #1 AI Meme Generator Built for Verified Businesses</span>
+          <span>Virlio — The #1 AI Meme Generator Built for Verified Businesses</span>
         </div>
 
         {/* H1 SEO Headline */}
         <h1 className="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight text-gray-900 sm:text-6xl lg:text-6xl leading-tight">
-          Turn Your Brand Into Viral Content with an{" "}
-          <span className="text-blue-600">AI Meme Generator</span>
+          Virlio AI Meme Generator:{" "}
+          <span className="text-blue-600">Turn Your Brand Into Viral Content</span>
         </h1>
 
         {/* Supporting Paragraph */}
         <p className="mx-auto mt-6 max-w-3xl text-lg text-gray-600 leading-relaxed">
-          Virlio helps real businesses create high-converting marketing memes using AI. Build a verified brand profile, select community templates, generate brand-safe captions, and automatically publish across social channels to grow your online presence.
+          Virlio is an AI-powered viral content and meme generation platform for verified businesses and digital creators. Build your brand profile, discover crowdsourced meme templates, generate AI-optimized captions, and automate social media growth safely.
         </p>
 
         {/* Primary & Secondary CTAs */}

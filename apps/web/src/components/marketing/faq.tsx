@@ -12,6 +12,10 @@ export function FaqSection() {
       a: "Virlio is an AI-powered meme generation and digital growth platform built for verified businesses and creators. It allows brands to generate culturally relevant, brand-safe memes from community templates and schedule social media publishing.",
     },
     {
+      q: "Why does Virlio use Google Sign-In?",
+      a: "Virlio uses Google OAuth authentication to let creators and brand managers securely access their Virlio dashboard without managing extra passwords. We only request basic profile info (openid, profile, email) strictly to authenticate your creator account and manage your verified brand profiles.",
+    },
+    {
       q: "Is Virlio free?",
       a: "Yes. Virlio offers a free-forever tier that includes brand profile verification, full template library access, AI caption generation, and basic social media rendering.",
     },

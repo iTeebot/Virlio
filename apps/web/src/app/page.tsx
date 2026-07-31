@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Hero } from "@/components/marketing/hero";
+import { AppPurposeSection } from "@/components/marketing/app-purpose";
 import { TrustSection } from "@/components/marketing/trust";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { FeatureShowcase } from "@/components/marketing/features";
@@ -22,6 +23,9 @@ export default function Home() {
       <main className="flex-1">
         {/* SEO H1 Hero Section */}
         <Hero />
+
+        {/* Explicit Application Purpose & OAuth Notice Section */}
+        <AppPurposeSection />
 
         {/* Concise Trust Cards */}
         <TrustSection />

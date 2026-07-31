@@ -127,6 +127,34 @@ export default function SettingsPage() {
   const [country, setCountry] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // User Data Deletion States
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeletingAccount(true);
+      const res = await fetch("/api/v1/users/delete-account", {
+        method: "DELETE",
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        toast.success("Your account and associated data have been permanently erased.", "Account Deleted");
+        setTimeout(() => {
+          signIn(undefined, { callbackUrl: "/" });
+        }, 1000);
+      } else {
+        toast.error(json.error || "Failed to delete account", "Error");
+      }
+    } catch (err) {
+      toast.error("Error deleting account. Please try again.", "Error");
+    } finally {
+      setIsDeletingAccount(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   // Fetch Accounts & Profile Score
   const loadSettingsData = async () => {
     try {
@@ -518,6 +546,35 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* 6. User Data Deletion & Privacy Controls */}
+      <div className="virlio-card p-6 bg-white border border-red-200 rounded-3xl shadow-xs space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-red-900 flex items-center gap-2">
+            <Trash2 className="w-5 h-5 text-red-600" />
+            <span>User Data Deletion & Account Erasure</span>
+          </h2>
+          <p className="text-xs text-gray-600 mt-0.5">
+            In accordance with GDPR, CCPA, and Facebook / Google privacy policies, you can permanently delete your Virlio account, connected OAuth tokens, and stored media at any time.
+          </p>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-100">
+          <div className="text-xs text-gray-500">
+            <p className="font-medium text-gray-700">Permanent Erasure</p>
+            <p className="text-[11px]">This action will purge your profile, connected accounts, and saved memes. This action cannot be undone.</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition-colors shrink-0"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete Account & Erase All Data</span>
+          </button>
+        </div>
+      </div>
+
       {/* Confirmation Disconnect Modal */}
       {confirmDisconnectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -561,6 +618,62 @@ export default function SettingsPage() {
                 className="py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition-colors disabled:opacity-50"
               >
                 {disconnectingProvider ? "Disconnecting..." : "Disconnect"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Account Deletion Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="relative w-full max-w-md bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-3 text-red-600">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">
+                Permanently Delete Account & Data?
+              </h3>
+              <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+                This action is permanent and cannot be undone. All your profile information, connected OAuth accounts, saved memes, and verification history will be deleted immediately.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount}
+                className="py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+              >
+                {isDeletingAccount ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Erasing...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete Everything</span>
+                )}
               </button>
             </div>
           </div>

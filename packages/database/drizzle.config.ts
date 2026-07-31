@@ -1,4 +1,9 @@
 import { defineConfig } from "drizzle-kit";
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({ path: path.resolve(process.cwd(), "../../apps/web/.env") });
+dotenv.config({ path: path.resolve(process.cwd(), "./.env") });
 
 const directUrl = process.env.DIRECT_DATABASE_URL || "";
 const dbUrl = process.env.DATABASE_URL || "";

@@ -78,3 +78,6 @@ export type NewBrandStats = InferInsertModel<typeof schema.brandStats>;
 
 export type CloudAsset = InferSelectModel<typeof schema.cloudAssets>;
 export type NewCloudAsset = InferInsertModel<typeof schema.cloudAssets>;
+
+export type TemplateModerationLog = InferSelectModel<typeof schema.templateModerationLogs>;
+export type NewTemplateModerationLog = InferInsertModel<typeof schema.templateModerationLogs>;

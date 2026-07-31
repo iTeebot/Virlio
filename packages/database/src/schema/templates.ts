@@ -28,8 +28,26 @@ export const templates = pgTable("templates", {
   image_height: integer("image_height"),
   image_format: text("image_format"),
   image_bytes: integer("image_bytes"),
+  // Hashing & Duplicate detection
+  sha256_hash: text("sha256_hash"),
+  phash: text("phash"),
+  dhash: text("dhash"),
+  // OCR & AI extraction
+  ocr_text: text("ocr_text"),
+  ocr_confidence: integer("ocr_confidence").default(0),
+  ocr_language: text("ocr_language"),
+  // Scores
+  quality_score: integer("quality_score").default(0),
+  risk_score: integer("risk_score").default(0),
+  duplicate_score: integer("duplicate_score").default(0),
+  // Explicit Processing & Decision Status
+  processing_status: text("processing_status").default("UPLOADED"),
+  rejection_reason: text("rejection_reason"),
+  rejection_code: text("rejection_code"),
   public_score: integer("public_score").default(0),
   trending_score: integer("trending_score").default(0),
+  upvotes_count: integer("upvotes_count").default(0),
+  downloads_count: integer("downloads_count").default(0),
   uploaded_by: uuid("uploaded_by").notNull().references(() => users.id),
   created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
@@ -42,4 +60,6 @@ export const templates = pgTable("templates", {
   uploadedByIdx: index("templates_uploaded_by_idx").on(table.uploaded_by),
   moderationStatusIdx: index("templates_moderation_status_idx").on(table.moderation_status),
   trendingScoreIdx: index("templates_trending_score_idx").on(table.trending_score),
+  sha256Idx: index("templates_sha256_idx").on(table.sha256_hash),
+  phashIdx: index("templates_phash_idx").on(table.phash),
 }));

@@ -1,9 +1,9 @@
 import { cloudinary } from "./client";
 
-export async function uploadBufferToCloudinary(buffer: Buffer, folder: string): Promise<any> {
+export async function uploadBufferToCloudinary(buffer: Buffer, folder: string, options: any = {}): Promise<any> {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder },
+      { folder, ...options },
       (error, result) => {
         if (error) return reject(error);
         resolve(result);

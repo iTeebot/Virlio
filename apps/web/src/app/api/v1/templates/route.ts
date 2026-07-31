@@ -9,15 +9,23 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const limit = parseInt(searchParams.get("limit") || "20", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
     const query = searchParams.get("query");
+    const mine = searchParams.get("mine") === "true";
 
-    const templates = query
+    if (mine) {
+      const session = await authService.getCurrentSession();
+      if (!session?.user?.id) return apiUnauthorized("Session required to view your uploaded templates");
+      const userTemplates = await templateService.getContributorTemplates(session.user.id, { limit, offset });
+      return apiSuccess(userTemplates);
+    }
+
+    const templatesList = query
       ? await templateService.search(query, { limit, offset })
       : await templateService.getPublicTemplates({ limit, offset });
 
-    return apiSuccess(templates);
+    return apiSuccess(templatesList);
   } catch (error: any) {
     return apiError(error.message || "Failed to fetch templates", 500);
   }

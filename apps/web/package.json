@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
+    "@virlio/ai": "workspace:*",
     "@virlio/database": "workspace:*",
+    "@virlio/utils": "workspace:*",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.10.0",
     "drizzle-orm": "^0.45.2",

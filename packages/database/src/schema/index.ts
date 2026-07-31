@@ -7,6 +7,7 @@ export * from "./engagement";
 export * from "./social";
 export * from "./gamification";
 export * from "./moderation";
+export * from "./template_moderation";
 export * from "./activity";
 export * from "./stats";
 export * from "./storage";

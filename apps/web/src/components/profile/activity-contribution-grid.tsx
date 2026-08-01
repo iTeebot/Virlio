@@ -7,8 +7,9 @@ interface ActivityContributionGridProps {
   currentStreak: number;
   longestStreak: number;
   createdAt?: string | Date | null;
-  activityTimeline?: Array<{ created_at: string | Date }>;
+  activityTimeline?: Array<{ id?: string; type?: string; label?: string; title?: string; created_at: string | Date }>;
   contributionDates?: Array<{ created_at: string | Date; type?: string }>;
+  contributionCalendar?: Record<string, { date: string; count: number; events?: any[] }>;
 }
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -19,6 +20,7 @@ export function ActivityContributionGrid({
   createdAt,
   activityTimeline = [],
   contributionDates = [],
+  contributionCalendar = {},
 }: ActivityContributionGridProps) {
   const [hoveredTile, setHoveredTile] = useState<{ dateStr: string; count: number } | null>(null);
 
@@ -30,12 +32,19 @@ export function ActivityContributionGrid({
     // Map activity counts by YYYY-MM-DD
     const activityMap: Record<string, number> = {};
 
+    // 0. Process contributionCalendar if available
+    if (contributionCalendar && Object.keys(contributionCalendar).length > 0) {
+      Object.entries(contributionCalendar).forEach(([dateKey, dayObj]) => {
+        activityMap[dateKey] = (activityMap[dateKey] || 0) + (dayObj.count || 0);
+      });
+    }
+
     // 1. Process activityTimeline
     activityTimeline.forEach((act) => {
       if (!act?.created_at) return;
       const d = new Date(act.created_at);
       if (isNaN(d.getTime())) return;
-      const key = d.toISOString().split("T")[0];
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       activityMap[key] = (activityMap[key] || 0) + 1;
     });
 

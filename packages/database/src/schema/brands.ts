@@ -39,6 +39,7 @@ export const brands = pgTable("brands", {
   created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   deleted_at: timestamp("deleted_at", { mode: "date", withTimezone: true }),
+  is_archived: boolean("is_archived").default(false),
   created_by: uuid("created_by").references(() => users.id),
   updated_by: uuid("updated_by").references(() => users.id),
 }, (table) => ({
@@ -62,3 +63,97 @@ export const brandMembers = pgTable("brand_members", {
 }, (table) => ({
   brandUserIdx: uniqueIndex("brand_members_brand_user_idx").on(table.brand_id, table.user_id).where(isNull(table.deleted_at)),
 }));
+
+export const brandDrafts = pgTable("brand_drafts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: uuid("user_id").notNull().references(() => users.id),
+  current_step: integer("current_step").default(1).notNull(),
+  step_data: jsonb("step_data").notNull(),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  userDraftIdx: uniqueIndex("brand_drafts_user_idx").on(table.user_id),
+}));
+
+export const brandKnowledgeBases = pgTable("brand_knowledge_bases", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  brand_id: uuid("brand_id").notNull().references(() => brands.id),
+  identity: jsonb("identity"),
+  products_services: jsonb("products_services"),
+  audience: jsonb("audience"),
+  brand_voice: jsonb("brand_voice"),
+  restrictions: jsonb("restrictions"),
+  faqs: jsonb("faqs"),
+  campaigns: jsonb("campaigns"),
+  hashtags_approved: jsonb("hashtags_approved"),
+  hashtags_blocked: jsonb("hashtags_blocked"),
+  competitors: jsonb("competitors"),
+  keywords: jsonb("keywords"),
+  preferred_ctas: jsonb("preferred_ctas"),
+  metadata: jsonb("metadata"),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  brandKbIdx: uniqueIndex("brand_kb_brand_idx").on(table.brand_id),
+}));
+
+export const brandVerifications = pgTable("brand_verifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  brand_id: uuid("brand_id").notNull().references(() => brands.id),
+  confidence_score: integer("confidence_score").default(0).notNull(),
+  status: verificationStatusEnum("status").default("pending").notNull(),
+  reasons: jsonb("reasons"),
+  recommendations: jsonb("recommendations"),
+  evidence_data: jsonb("evidence_data"),
+  dns_token: text("dns_token"),
+  meta_tag_token: text("meta_tag_token"),
+  verified_at: timestamp("verified_at", { mode: "date", withTimezone: true }),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  brandVerifIdx: uniqueIndex("brand_verifications_brand_idx").on(table.brand_id),
+}));
+
+export const brandInvitations = pgTable("brand_invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  brand_id: uuid("brand_id").notNull().references(() => brands.id),
+  email: text("email"),
+  username: text("username"),
+  role: brandRoleEnum("role").notNull(),
+  token: text("token").notNull(),
+  invited_by: uuid("invited_by").notNull().references(() => users.id),
+  status: text("status").default("pending").notNull(),
+  expires_at: timestamp("expires_at", { mode: "date", withTimezone: true }).notNull(),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  tokenIdx: uniqueIndex("brand_invitations_token_idx").on(table.token),
+  brandInviteIdx: index("brand_invitations_brand_idx").on(table.brand_id),
+}));
+
+export const brandAuditLogs = pgTable("brand_audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  brand_id: uuid("brand_id").notNull().references(() => brands.id),
+  user_id: uuid("user_id").notNull().references(() => users.id),
+  action: text("action").notNull(),
+  details: jsonb("details"),
+  ip_address: text("ip_address"),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  brandAuditIdx: index("brand_audit_logs_brand_idx").on(table.brand_id),
+}));
+
+export const brandTaxonomies = pgTable("brand_taxonomies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  category: text("category").notNull(), // 'business_type' | 'industry' | 'sub_industry'
+  parent_value: text("parent_value"),
+  name: text("name").notNull(),
+  slug: text("slug").notNull(),
+  status: text("status").default("pending").notNull(), // 'pending' | 'approved' | 'rejected'
+  suggested_by: uuid("suggested_by").references(() => users.id),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  categoryIdx: index("brand_taxonomies_category_idx").on(table.category),
+  statusIdx: index("brand_taxonomies_status_idx").on(table.status),
+}));
+
+

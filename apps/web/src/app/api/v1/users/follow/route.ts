@@ -68,6 +68,8 @@ export async function POST(req: NextRequest) {
       await followRepository.unfollow(session.user.id, targetUserId, "user");
     } else {
       await followRepository.follow(session.user.id, targetUserId, "user");
+      const { activityEngine } = await import("@/server/services/activity-engine.service");
+      await activityEngine.recordActivity(session.user.id, "followed_user", "user", targetUserId).catch(() => null);
     }
 
     const isFollowing = action !== "unfollow";

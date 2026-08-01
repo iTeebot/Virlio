@@ -3,11 +3,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import {
   userRepository,
-  statsRepository,
   memeRepository,
   brandRepository,
-  activityRepository,
 } from "@/server/repositories";
+import { userStatsEngine } from "@/server/services/user-stats-engine.service";
+import { activityEngine } from "@/server/services/activity-engine.service";
 import { OverviewHeader } from "@/components/dashboard/overview-header";
 import { OverviewStats } from "@/components/dashboard/overview-stats";
 import { OverviewRecentMemes } from "@/components/dashboard/overview-recent-memes";
@@ -26,14 +26,23 @@ export default async function OverviewPage() {
 
   const userId = session.user.id;
 
-  // Server-side parallel data fetching
-  const [dbUser, userStats, userMemes, userBrands, userActivities] = await Promise.all([
+  // Server-side parallel data fetching from single source of truth
+  const [dbUser, userStats, userMemes, userBrands, rawActivities] = await Promise.all([
     userRepository.findById(userId).catch(() => null),
-    statsRepository.getUserStats(userId).catch(() => null),
+    userStatsEngine.getUserStatistics(userId).catch(() => null),
     memeRepository.findByGenerator(userId, { limit: 6 }).catch(() => []),
     brandRepository.findByOwner(userId).catch(() => []),
-    activityRepository.findByUser(userId, { limit: 5 }).catch(() => []),
+    activityEngine.getActivityTimeline(userId, 5).catch(() => []),
   ]);
+
+  const userActivities = rawActivities.map((a) => ({
+    id: a.id,
+    activity_type: a.type as any,
+    created_at: a.created_at,
+    metadata: a.metadata,
+    action: a.label,
+    details: { message: a.label },
+  }));
 
   const userProfile = {
     id: userId,
@@ -42,18 +51,18 @@ export default async function OverviewPage() {
     email: session.user.email || dbUser?.email || null,
     image: session.user.image || dbUser?.image || null,
     role: dbUser?.role || session.user.role || "user",
-    trust_score: dbUser?.trust_score ?? 100,
-    contributor_score: dbUser?.contributor_score ?? 0,
+    trust_score: userStats?.trustScore ?? dbUser?.trust_score ?? 100,
+    contributor_score: userStats?.xp ?? dbUser?.contributor_score ?? 0,
     account_status: dbUser?.account_status || "active",
   };
 
   const overviewStats = {
-    totalMemes: userStats?.memes_generated ?? userMemes.length,
+    totalMemes: userStats?.memes.total ?? userMemes.length,
     totalBrands: userBrands.length,
-    totalUpvotes: userStats?.likes_received ?? 0,
-    currentStreak: userStats?.current_streak ?? 1,
-    level: userStats?.current_level ?? 1,
-    xpPoints: userStats?.current_xp ?? 0,
+    totalUpvotes: (userStats?.templates.upvotes || 0) + (userStats?.memes.upvotes || 0),
+    currentStreak: userStats?.currentStreak ?? 0,
+    level: userStats?.level ?? 1,
+    xpPoints: userStats?.xp ?? 0,
   };
 
   return (

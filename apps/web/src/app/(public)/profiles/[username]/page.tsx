@@ -147,8 +147,9 @@ interface UserProfileData {
   activity_timeline?: Array<{
     id: string;
     type: string;
-    title: string;
-    description: string;
+    label?: string;
+    title?: string;
+    description?: string;
     created_at: string | Date;
   }>;
   contribution_stats?: {
@@ -708,6 +709,7 @@ function UserPublicProfileContent() {
             longestStreak={profile.longest_streak ?? 0}
             createdAt={profile.created_at}
             activityTimeline={activityTimeline}
+            contributionCalendar={(profile as any).contribution_calendar}
             contributionDates={(profile as any).contribution_dates}
           />
 
@@ -971,8 +973,8 @@ function UserPublicProfileContent() {
                         <Clock className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-gray-900">{act.title}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{act.description}</p>
+                        <p className="text-xs font-bold text-gray-900">{act.label || act.title || act.type}</p>
+                        {act.description && <p className="text-xs text-gray-500 mt-0.5">{act.description}</p>}
                         <span className="text-[10px] text-gray-400 mt-1 block">
                           {new Date(act.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </span>

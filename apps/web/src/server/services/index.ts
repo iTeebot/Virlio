@@ -13,4 +13,5 @@ export * as statsService from "./stats.service";
 export * as storageService from "./storage.service";
 export * as exploreService from "./explore.service";
 export * as authorizationService from "./authorization.service";
+export * from "./xp-engine.service";
 

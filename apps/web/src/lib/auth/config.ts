@@ -96,27 +96,27 @@ const providers = [];
 
 const googleCreds = getProviderCredentials("google");
 if (googleCreds) {
-  providers.push(Google(googleCreds));
+  providers.push(Google({ ...googleCreds, allowDangerousEmailAccountLinking: true }));
 }
 
 const githubCreds = getProviderCredentials("github");
 if (githubCreds) {
-  providers.push(GitHub(githubCreds));
+  providers.push(GitHub({ ...githubCreds, allowDangerousEmailAccountLinking: true }));
 }
 
 const facebookCreds = getProviderCredentials("facebook");
 if (facebookCreds) {
-  providers.push(Facebook(facebookCreds));
+  providers.push(Facebook({ ...facebookCreds, allowDangerousEmailAccountLinking: true }));
 }
 
 const linkedinCreds = getProviderCredentials("linkedin");
 if (linkedinCreds) {
-  providers.push(LinkedIn(linkedinCreds));
+  providers.push(LinkedIn({ ...linkedinCreds, allowDangerousEmailAccountLinking: true }));
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  debug: true,
+  debug: false,
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
@@ -131,6 +131,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     newUser: "/dashboard/overview",
     error: "/login",
   },
+  callbacks: {
+    async signIn({ user, account }) {
+      try {
+        if (user?.email) {
+          const { eq, and, isNotNull } = await import("drizzle-orm");
+          // Check if there is an existing soft-deleted account with this email
+          const existingDeleted = await db.query.users.findFirst({
+            where: and(
+              eq(users.email, user.email),
+              isNotNull(users.deleted_at)
+            ),
+          });
+
+          if (existingDeleted) {
+            // Free up the email and delete leftover OAuth account links for the deleted user
+            await db.update(users).set({ email: null }).where(eq(users.id, existingDeleted.id)).catch(() => null);
+            await db.delete(accounts).where(eq(accounts.userId, existingDeleted.id)).catch(() => null);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking soft-deleted user in signIn callback:", err);
+      }
+      return true;
+    },
+    async session({ session, user }) {
+      if (session.user && user) {
+        session.user.id = user.id;
+        session.user.role = (user as any).role || "user";
+        session.user.username = (user as any).username || null;
+      }
+      return session;
+    },
+  },
   events: {
     // Automatically generate a clean, unique mandatory username when a user signs up via Google / Social OAuth
     async createUser({ user }) {
@@ -142,7 +175,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           let candidate = baseHandle;
           let counter = 1;
 
-          // Ensure real-time uniqueness against database
           while (await userRepository.findByUsername(candidate)) {
             candidate = `${baseHandle}_${counter++}`;
           }
@@ -158,16 +190,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       } catch (err) {
         console.error("Error generating username or awarding Early Adopter badge during OAuth createUser event:", err);
       }
-    },
-  },
-  callbacks: {
-    async session({ session, user }) {
-      if (session.user && user) {
-        session.user.id = user.id;
-        session.user.role = (user as any).role || "user";
-        session.user.username = (user as any).username || null;
-      }
-      return session;
     },
   },
 });

@@ -96,6 +96,9 @@ export async function POST(req: NextRequest) {
       license,
     });
 
+    const { activityEngine } = await import("@/server/services/activity-engine.service");
+    await activityEngine.recordActivity(session.user.id, "template_uploaded", "template", result?.template?.id || (result as any)?.id || undefined, { title }).catch(() => null);
+
     return apiSuccess(result, 201);
   } catch (error: any) {
     console.error("[Template Upload Error]", error);

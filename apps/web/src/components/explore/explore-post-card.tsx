@@ -16,6 +16,8 @@ import {
   Send,
 } from "lucide-react";
 
+import { useTemplateVote } from "@/hooks/useTemplateVote";
+
 export interface ExplorePost {
   id: string;
   title: string;
@@ -32,7 +34,7 @@ export interface ExplorePost {
   upvotes_count: number;
   comments_count: number;
   created_at: string | Date;
-  user_voted?: "up" | "down" | null;
+  user_voted?: "up" | "down" | "upvote" | "downvote" | null;
   user_bookmarked?: boolean;
 }
 
@@ -45,8 +47,18 @@ export function ExplorePostCard({ post, onRequireAuth }: ExplorePostCardProps) {
   const { status } = useSession();
   const isAuthenticated = status === "authenticated";
 
-  const [upvotes, setUpvotes] = useState(post.upvotes_count || 0);
-  const [voteState, setVoteState] = useState<"up" | "down" | null>(post.user_voted || null);
+  const {
+    upvotesCount: upvotes,
+    currentUserVote,
+    isLiked,
+    isDisliked,
+    isPending,
+    handleVote: triggerVote,
+  } = useTemplateVote(post.id, {
+    upvotes_count: post.upvotes_count,
+    user_voted: post.user_voted,
+  });
+
   const [isBookmarked, setIsBookmarked] = useState(!!post.user_bookmarked);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -55,49 +67,13 @@ export function ExplorePostCard({ post, onRequireAuth }: ExplorePostCardProps) {
   ]);
   const [copiedShare, setCopiedShare] = useState(false);
 
-  const handleVote = async (type: "up" | "down") => {
+  const handleVote = async (type: "upvote" | "downvote") => {
     if (!isAuthenticated) {
       onRequireAuth("Sign in to upvote memes and support creators.");
       return;
     }
-
-    // Optimistic state update
-    if (voteState === type) {
-      // Remove vote
-      setVoteState(null);
-      setUpvotes((prev) => (type === "up" ? prev - 1 : prev));
-      try {
-        await fetch(`/api/v1/votes?entityType=meme&entityId=${post.id}`, { method: "DELETE" });
-      } catch (err) {
-        // Rollback
-        setVoteState(type);
-        setUpvotes((prev) => (type === "up" ? prev + 1 : prev));
-      }
-    } else {
-      // Add or switch vote
-      const prevVote = voteState;
-      setVoteState(type);
-      setUpvotes((prev) => {
-        if (prevVote === "up" && type === "down") return prev - 1;
-        if (prevVote === null && type === "up") return prev + 1;
-        return prev;
-      });
-
-      try {
-        await fetch("/api/v1/votes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            entity_type: "meme",
-            entity_id: post.id,
-            vote_type: type,
-          }),
-        });
-      } catch (err) {
-        // Rollback
-        setVoteState(prevVote);
-      }
-    }
+    if (isPending) return;
+    await triggerVote(type);
   };
 
   const handleBookmark = () => {
@@ -228,24 +204,26 @@ export function ExplorePostCard({ post, onRequireAuth }: ExplorePostCardProps) {
           {/* Upvote */}
           <button
             type="button"
-            onClick={() => handleVote("up")}
+            disabled={isPending}
+            onClick={() => handleVote("upvote")}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
-              voteState === "up"
+              isLiked
                 ? "bg-blue-50 text-blue-600 border-blue-200 font-bold"
                 : "bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200/80"
             }`}
             aria-label="Upvote post"
           >
-            <ThumbsUp className={`w-3.5 h-3.5 ${voteState === "up" ? "text-blue-600" : ""}`} />
+            <ThumbsUp className={`w-3.5 h-3.5 ${isLiked ? "text-blue-600" : ""}`} />
             <span>{upvotes}</span>
           </button>
 
           {/* Downvote */}
           <button
             type="button"
-            onClick={() => handleVote("down")}
+            disabled={isPending}
+            onClick={() => handleVote("downvote")}
             className={`p-1.5 rounded-xl border transition-all ${
-              voteState === "down"
+              isDisliked
                 ? "bg-red-50 text-red-600 border-red-200"
                 : "bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200/80"
             }`}

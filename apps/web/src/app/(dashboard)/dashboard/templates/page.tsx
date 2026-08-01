@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Upload,
@@ -17,6 +18,7 @@ import {
   ShieldCheck,
   Tag,
   Eye,
+  Image as ImageIcon,
 } from "lucide-react";
 
 interface TemplateItem {
@@ -28,6 +30,9 @@ interface TemplateItem {
   cloudinary_secure_url: string;
   moderation_status: "approved" | "rejected" | "flagged" | "pending";
   processing_status: string;
+  duplicate_status?: string;
+  duplicate_of_template_id?: string;
+  duplicate_of_slug?: string;
   quality_score: number;
   risk_score: number;
   duplicate_score: number;
@@ -71,18 +76,43 @@ export default function DashboardTemplatesPage() {
       tpl.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tpl.subcategory?.toLowerCase().includes(searchQuery.toLowerCase());
 
+    const tplIsDuplicate =
+      tpl.processing_status === "DUPLICATE" ||
+      tpl.duplicate_status === "exact_duplicate" ||
+      tpl.duplicate_status === "visual_duplicate" ||
+      Boolean(tpl.duplicate_of_template_id);
+
+    const tplIsApproved = tpl.moderation_status === "approved" && !tplIsDuplicate;
+    const tplIsReview =
+      (tpl.moderation_status === "flagged" || tpl.processing_status === "NEEDS_REVIEW") && !tplIsDuplicate;
+    const tplIsRejected =
+      (tpl.moderation_status === "rejected" || tpl.processing_status === "REJECTED") && !tplIsDuplicate;
+
     if (statusFilter === "all") return matchesSearch;
-    if (statusFilter === "approved") return matchesSearch && tpl.moderation_status === "approved";
-    if (statusFilter === "review") return matchesSearch && (tpl.moderation_status === "flagged" || tpl.processing_status === "NEEDS_REVIEW");
-    if (statusFilter === "rejected") return matchesSearch && (tpl.moderation_status === "rejected" || tpl.processing_status === "REJECTED");
-    if (statusFilter === "duplicate") return matchesSearch && tpl.processing_status === "DUPLICATE";
+    if (statusFilter === "approved") return matchesSearch && tplIsApproved;
+    if (statusFilter === "review") return matchesSearch && tplIsReview;
+    if (statusFilter === "rejected") return matchesSearch && tplIsRejected;
+    if (statusFilter === "duplicate") return matchesSearch && tplIsDuplicate;
     return matchesSearch;
   });
 
   const totalCount = templates.length;
-  const approvedCount = templates.filter((t) => t.moderation_status === "approved").length;
-  const reviewCount = templates.filter((t) => t.moderation_status === "flagged" || t.processing_status === "NEEDS_REVIEW").length;
-  const rejectedCount = templates.filter((t) => t.moderation_status === "rejected" || t.processing_status === "REJECTED").length;
+  const approvedCount = templates.filter(
+    (t) => t.moderation_status === "approved" && t.processing_status !== "DUPLICATE" && !t.duplicate_of_template_id
+  ).length;
+  const reviewCount = templates.filter(
+    (t) =>
+      (t.moderation_status === "flagged" || t.processing_status === "NEEDS_REVIEW") &&
+      t.processing_status !== "DUPLICATE" &&
+      !t.duplicate_of_template_id
+  ).length;
+  const rejectedCount = templates.filter(
+    (t) =>
+      t.moderation_status === "rejected" ||
+      t.processing_status === "REJECTED" ||
+      t.processing_status === "DUPLICATE" ||
+      Boolean(t.duplicate_of_template_id)
+  ).length;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 space-y-8">
@@ -200,7 +230,14 @@ export default function DashboardTemplatesPage() {
         </div>
       ) : filteredTemplates.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-600 space-y-4 shadow-sm">
-          <Upload className="w-12 h-12 mx-auto text-slate-400" />
+          <div className="relative w-40 h-40 mx-auto">
+            <Image
+              src={searchQuery ? "/images/empty_state/no_search_results.png" : "/images/empty_state/no_templates.png"}
+              alt="No Templates Illustration"
+              fill
+              className="object-contain"
+            />
+          </div>
           <div className="max-w-md mx-auto">
             <h3 className="text-lg font-bold text-slate-900">No templates found</h3>
             <p className="text-sm text-slate-500 mt-1">
@@ -220,10 +257,15 @@ export default function DashboardTemplatesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTemplates.map((template) => {
-            const isApproved = template.moderation_status === "approved";
-            const isRejected = template.moderation_status === "rejected" || template.processing_status === "REJECTED";
-            const isReview = template.moderation_status === "flagged" || template.processing_status === "NEEDS_REVIEW";
-            const isDuplicate = template.processing_status === "DUPLICATE";
+            const isDuplicate =
+              template.processing_status === "DUPLICATE" ||
+              template.duplicate_status === "exact_duplicate" ||
+              template.duplicate_status === "visual_duplicate" ||
+              Boolean(template.duplicate_of_template_id);
+
+            const isApproved = template.moderation_status === "approved" && !isDuplicate;
+            const isRejected = (template.moderation_status === "rejected" || template.processing_status === "REJECTED") && !isDuplicate;
+            const isReview = (template.moderation_status === "flagged" || template.processing_status === "NEEDS_REVIEW") && !isDuplicate;
 
             return (
               <div
@@ -232,15 +274,22 @@ export default function DashboardTemplatesPage() {
               >
                 <div>
                   {/* Template Image Preview */}
-                  <div className="relative aspect-video bg-slate-100 overflow-hidden border-b border-slate-200">
-                    <img
-                      src={template.cloudinary_secure_url}
-                      alt={template.title}
-                      className="w-full h-full object-contain p-2"
-                    />
+                  <div className="relative aspect-video bg-slate-100 overflow-hidden border-b border-slate-200 flex items-center justify-center">
+                    {template.cloudinary_secure_url ? (
+                      <img
+                        src={template.cloudinary_secure_url}
+                        alt={template.title}
+                        className="w-full h-full object-contain p-2"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-slate-400 gap-1.5 p-4">
+                        <ImageIcon className="w-8 h-8 text-slate-300" />
+                        <span className="text-xs font-medium text-slate-500">Duplicate Submission</span>
+                      </div>
+                    )}
 
                     {/* Status Badge */}
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5">
                       {isApproved && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -259,7 +308,7 @@ export default function DashboardTemplatesPage() {
                           Duplicate
                         </span>
                       )}
-                      {isRejected && (
+                      {isRejected && !isDuplicate && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
                           <XCircle className="w-3.5 h-3.5 text-rose-600" />
                           Rejected
@@ -315,6 +364,15 @@ export default function DashboardTemplatesPage() {
                     >
                       <Eye className="w-3.5 h-3.5" />
                       View Public Page
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  ) : isDuplicate ? (
+                    <Link
+                      href={`/templates/${template.duplicate_of_slug || template.slug}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-300 transition"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-purple-600" />
+                      <span>See Duplicate</span>
                       <ExternalLink className="w-3 h-3" />
                     </Link>
                   ) : (

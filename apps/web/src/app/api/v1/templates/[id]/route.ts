@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
+import { authService } from "@/server/services";
 import { apiSuccess, apiError, apiNotFound } from "@/lib/utils/api-response";
 import { db } from "@virlio/database";
-import { templates } from "@virlio/database/schema";
+import { templates, votes } from "@virlio/database/schema";
 import { eq, and, isNull } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -38,11 +39,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return apiNotFound("Template not found");
     }
 
+    let currentUserVote: "upvote" | "downvote" | null = null;
+    const session = await authService.getCurrentSession();
+
+    if (session?.user?.id) {
+      const userVoteRow = await db.query.votes.findFirst({
+        where: and(
+          eq(votes.entity_type, "template"),
+          eq(votes.entity_id, tpl.id),
+          eq(votes.user_id, session.user.id)
+        ),
+      });
+      if (userVoteRow) {
+        currentUserVote = userVoteRow.vote_type as "upvote" | "downvote";
+      }
+    }
+
     return apiSuccess({
       ...tpl,
+      currentUserVote,
+      user_vote: currentUserVote,
+      user_has_voted: currentUserVote !== null,
       contributor_username: tpl.uploader?.username || tpl.uploader?.name || "creator",
     });
   } catch (error: any) {
     return apiError(error.message || "Failed to fetch template detail", 500);
   }
 }
+

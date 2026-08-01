@@ -55,7 +55,7 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
     const followerCount = await followRepository.getFollowerCount(userId).catch(() => 0);
     const followingCount = await followRepository.getFollowingCount(userId).catch(() => 0);
 
-    // 3. Streaks
+    // 3. Streaks Record
     const streakRecord = await db.query.streaks
       .findFirst({ where: eq(streaks.user_id, userId) })
       .catch(() => null);
@@ -98,8 +98,138 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
       orderBy: desc(templates.created_at),
     }).catch(() => [])) || [];
 
-    const currentStreak = streakRecord?.current_streak ?? 0;
-    const longestStreak = streakRecord?.longest_streak ?? 0;
+    // 8. Raw Activities
+    const rawActivities = (await db.query.activities.findMany({
+      where: eq(activities.user_id, userId),
+      limit: 20,
+      orderBy: desc(activities.created_at),
+    }).catch(() => [])) || [];
+
+    // 9. Collect and map all real contribution items for Timeline & Streaks
+    const rawContributionItems = [
+      ...publicMemes.map((m: any) => ({
+        created_at: m.created_at,
+        type: "meme",
+        title: `Generated Meme "${m.title || "Untitled Meme"}"`,
+        description: "Created new viral meme format",
+      })),
+      ...publicTemplates.map((t: any) => ({
+        created_at: t.created_at,
+        type: "template",
+        title: `Uploaded Template "${t.title || "Meme Template"}"`,
+        description: `Submitted template in category "${t.category || "General"}"`,
+      })),
+      ...userBadgesList.map((ub: any) => ({
+        created_at: ub.unlocked_at || ub.created_at,
+        type: "badge",
+        title: `Unlocked Badge "${ub.badge?.name || "Achievement"}"`,
+        description: ub.badge?.description || "Earned community badge",
+      })),
+      ...rawActivities.map((a: any) => {
+        let title = a.metadata?.title ? `Activity: ${a.metadata.title}` : "User Activity";
+        let desc = a.metadata?.category ? `Category: ${a.metadata.category}` : "Interacted with Virlio community";
+        if (a.activity_type === "template_approved" || a.activity_type === "template_uploaded") {
+          title = `Uploaded Template "${a.metadata?.title || "Meme Template"}"`;
+          desc = `Submitted format in ${a.metadata?.category || "Community"}`;
+        } else if (a.activity_type === "meme_generated") {
+          title = "Generated Branded Meme";
+          desc = "Created new viral meme format";
+        }
+        return {
+          created_at: a.created_at,
+          type: "activity",
+          title,
+          description: desc,
+        };
+      }),
+      {
+        created_at: existingUser.created_at,
+        type: "joined",
+        title: "Joined Virlio Community",
+        description: "Created creator profile account",
+      },
+    ];
+
+    // Sort timeline chronologically descending
+    const sortedTimeline = rawContributionItems
+      .filter((item) => item.created_at && !isNaN(new Date(item.created_at).getTime()))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const activityTimeline = sortedTimeline.slice(0, 15).map((item, idx) => ({
+      id: `act-${idx}-${new Date(item.created_at).getTime()}`,
+      type: item.type,
+      title: item.title,
+      description: item.description,
+      created_at: item.created_at,
+    }));
+
+    // Calculate real dynamic consecutive streak from contribution dates
+    const uniqueDaysSet = new Set<string>();
+    sortedTimeline.forEach((item) => {
+      const d = new Date(item.created_at);
+      const dayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      uniqueDaysSet.add(dayKey);
+    });
+
+    const sortedDayKeys = Array.from(uniqueDaysSet).sort((a, b) => (a < b ? 1 : -1)); // Descending YYYY-MM-DD
+
+    let calculatedCurrentStreak = 0;
+    let calculatedLongestStreak = 0;
+
+    if (sortedDayKeys.length > 0) {
+      const today = new Date();
+      const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+
+      const hasRecentActivity = sortedDayKeys.includes(todayKey) || sortedDayKeys.includes(yesterdayKey);
+
+      let tempStreak = 0;
+      let prevDate: Date | null = null;
+
+      for (let i = 0; i < sortedDayKeys.length; i++) {
+        const currDate = new Date(sortedDayKeys[i]);
+        if (!prevDate) {
+          tempStreak = 1;
+        } else {
+          const diffMs = prevDate.getTime() - currDate.getTime();
+          const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            tempStreak += 1;
+          } else {
+            if (tempStreak > calculatedLongestStreak) {
+              calculatedLongestStreak = tempStreak;
+            }
+            tempStreak = 1;
+          }
+        }
+        prevDate = currDate;
+      }
+      if (tempStreak > calculatedLongestStreak) {
+        calculatedLongestStreak = tempStreak;
+      }
+
+      if (hasRecentActivity) {
+        const startKey = sortedDayKeys.includes(todayKey) ? todayKey : yesterdayKey;
+        let curr = new Date(startKey);
+        while (true) {
+          const k = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, "0")}-${String(curr.getDate()).padStart(2, "0")}`;
+          if (uniqueDaysSet.has(k)) {
+            calculatedCurrentStreak++;
+            curr.setDate(curr.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    const dbCurrentStreak = streakRecord?.current_streak ?? 0;
+    const dbLongestStreak = streakRecord?.longest_streak ?? 0;
+
+    const currentStreak = Math.max(dbCurrentStreak, calculatedCurrentStreak);
+    const longestStreak = Math.max(dbLongestStreak, calculatedLongestStreak, currentStreak);
     const totalUpvotes = upvoteRes[0]?.count ?? 0;
 
     // Calculate Real XP
@@ -111,29 +241,10 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
 
     const levelInfo = calculateUserLevelInfo(totalXp);
 
-    // 8. Public Activity Timeline
-    const rawActivities = (await db.query.activities.findMany({
-      where: eq(activities.user_id, userId),
-      limit: 10,
-      orderBy: desc(activities.created_at),
-    }).catch(() => [])) || [];
-
-    const activityTimeline = rawActivities.map((act: any) => ({
-      id: act.id,
-      type: act.action_type || "contribution",
-      title: act.title || "User Activity",
-      description: act.description || "",
-      created_at: act.created_at,
+    const contributionDates = sortedTimeline.map((item) => ({
+      created_at: item.created_at,
+      type: item.type,
     }));
-
-    // 9. Aggregate all real contribution dates for the activity contribution grid
-    const contributionDates = [
-      { created_at: existingUser.created_at, type: "joined" },
-      ...publicMemes.map((m: any) => ({ created_at: m.created_at, type: "meme" })),
-      ...publicTemplates.map((t: any) => ({ created_at: t.created_at, type: "template" })),
-      ...userBadgesList.map((ub: any) => ({ created_at: ub.unlocked_at || ub.created_at, type: "badge" })),
-      ...rawActivities.map((a: any) => ({ created_at: a.created_at, type: "activity" })),
-    ];
 
     return apiSuccess({
       available: false,

@@ -1,6 +1,6 @@
 import { db } from "@virlio/database";
 import { templates, templateModerationLogs, cloudAssets, activities } from "@virlio/database/schema";
-import { eq, isNull, and, desc, or, ilike, sql } from "drizzle-orm";
+import { eq, isNull, and, desc, asc, or, ilike, sql } from "drizzle-orm";
 import type { Template } from "@virlio/database/types";
 
 export async function findById(id: string) {
@@ -51,20 +51,123 @@ export async function findByContributor(userId: string, options: { limit?: numbe
         },
       },
     },
-    limit: options.limit || 20,
+    limit: options.limit || 50,
     offset: options.offset || 0,
     orderBy: desc(templates.created_at),
   });
 
-  return result.map((tpl: any) => ({
-    ...tpl,
-    contributor_username: tpl.uploader?.username || tpl.uploader?.name || "creator",
-  }));
+  const enriched = await Promise.all(
+    result.map(async (tpl: any) => {
+      let imageUrl = tpl.cloudinary_secure_url;
+      let originalSlug = tpl.slug;
+
+      if (tpl.duplicate_of_template_id) {
+        const original = await findById(tpl.duplicate_of_template_id);
+        if (original) {
+          if (!imageUrl) imageUrl = original.cloudinary_secure_url;
+          originalSlug = original.slug;
+        }
+      }
+
+      return {
+        ...tpl,
+        cloudinary_secure_url: imageUrl || "",
+        duplicate_of_slug: originalSlug,
+        contributor_username: tpl.uploader?.username || tpl.uploader?.name || "creator",
+      };
+    })
+  );
+
+  return enriched;
 }
 
-export async function findPublicTemplates(options: { limit?: number; offset?: number } = {}) {
-  const result = await db.query.templates.findMany({
-    where: and(isNull(templates.deleted_at), eq(templates.visibility, "public"), eq(templates.moderation_status, "approved")),
+import { PREDEFINED_CATEGORIES } from "@/lib/constants/categories";
+
+export async function findPublicTemplates(options: { limit?: number; offset?: number; category?: string } = {}) {
+  try {
+    const whereConditions: any[] = [
+      isNull(templates.deleted_at),
+      eq(templates.visibility, "public"),
+      eq(templates.moderation_status, "approved"),
+    ];
+
+    if (options.category && options.category.toLowerCase() !== "all") {
+      const rawCat = options.category.trim();
+      const matchedPredefined = PREDEFINED_CATEGORIES.find(
+        (c) => c.slug.toLowerCase() === rawCat.toLowerCase() || c.name.toLowerCase() === rawCat.toLowerCase()
+      );
+
+      const targetName = matchedPredefined?.name || rawCat;
+      const targetSlug = matchedPredefined?.slug || rawCat.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_-]/g, "");
+
+      whereConditions.push(
+        or(
+          ilike(templates.category, targetName),
+          ilike(templates.category, rawCat),
+          ilike(templates.category, targetSlug),
+          sql`lower(replace(replace(${templates.category}, '&', ''), ' ', '-')) = lower(replace(replace(${rawCat}, '&', ''), ' ', '-'))`
+        )
+      );
+    }
+
+    const result = await db.query.templates.findMany({
+      where: and(...whereConditions),
+      with: {
+        uploader: {
+          columns: {
+            id: true,
+            username: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+      limit: options.limit || 50,
+      offset: options.offset || 0,
+      orderBy: [desc(templates.upvotes_count), desc(templates.downloads_count), desc(templates.created_at)],
+    });
+
+    return result.map((tpl: any) => ({
+      ...tpl,
+      contributor_username: tpl.uploader?.username || tpl.uploader?.name || "creator",
+    }));
+  } catch (error) {
+    console.error("[findPublicTemplates Error]", error);
+    try {
+      const fallbackRows = await db
+        .select()
+        .from(templates)
+        .where(and(isNull(templates.deleted_at), eq(templates.visibility, "public")))
+        .limit(options.limit || 50)
+        .offset(options.offset || 0);
+
+      return fallbackRows.map((tpl: any) => ({ ...tpl, contributor_username: "creator" }));
+    } catch {
+      return [];
+    }
+  }
+}
+
+export async function findExistingHashes() {
+  try {
+    return await db.select({ id: templates.id, sha256_hash: templates.sha256_hash, phash: templates.phash, original_sha256: templates.original_sha256, canonical_image_sha256: templates.canonical_image_sha256, perceptual_hash: templates.perceptual_hash }).from(templates).where(isNull(templates.deleted_at));
+  } catch (err) {
+    console.warn("[Repository] findExistingHashes fallback:", err);
+    return [];
+  }
+}
+
+export async function findByOriginalSha256(hash: string) {
+  if (!hash) return null;
+  const match = await db.query.templates.findFirst({
+    where: and(
+      isNull(templates.deleted_at),
+      or(eq(templates.original_sha256, hash), eq(templates.sha256_hash, hash))
+    ),
+    orderBy: [
+      desc(sql`CASE WHEN ${templates.visibility} = 'public' THEN 1 ELSE 0 END`),
+      asc(templates.created_at),
+    ],
     with: {
       uploader: {
         columns: {
@@ -75,22 +178,70 @@ export async function findPublicTemplates(options: { limit?: number; offset?: nu
         },
       },
     },
-    limit: options.limit || 20,
-    offset: options.offset || 0,
-    orderBy: desc(templates.created_at),
   });
 
-  return result.map((tpl: any) => ({
-    ...tpl,
-    contributor_username: tpl.uploader?.username || tpl.uploader?.name || "creator",
-  }));
+  if (!match) return null;
+
+  if (match.duplicate_of_template_id) {
+    const canonicalOriginal = await findById(match.duplicate_of_template_id);
+    if (canonicalOriginal) return canonicalOriginal;
+  }
+
+  return match;
 }
 
-export async function findExistingHashes() {
+export async function findByCanonicalSha256(hash: string) {
+  if (!hash) return null;
+  const match = await db.query.templates.findFirst({
+    where: and(
+      isNull(templates.deleted_at),
+      eq(templates.canonical_image_sha256, hash)
+    ),
+    orderBy: [
+      desc(sql`CASE WHEN ${templates.visibility} = 'public' THEN 1 ELSE 0 END`),
+      asc(templates.created_at),
+    ],
+    with: {
+      uploader: {
+        columns: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+        },
+      },
+    },
+  });
+
+  if (!match) return null;
+
+  if (match.duplicate_of_template_id) {
+    const canonicalOriginal = await findById(match.duplicate_of_template_id);
+    if (canonicalOriginal) return canonicalOriginal;
+  }
+
+  return match;
+}
+
+export async function findPerceptualCandidates() {
   try {
-    return await db.select({ sha256_hash: templates.sha256_hash, phash: templates.phash }).from(templates).where(isNull(templates.deleted_at));
+    return await db
+      .select({
+        id: templates.id,
+        title: templates.title,
+        slug: templates.slug,
+        category: templates.category,
+        uploaded_by: templates.uploaded_by,
+        original_sha256: templates.original_sha256,
+        canonical_image_sha256: templates.canonical_image_sha256,
+        perceptual_hash: templates.perceptual_hash,
+        phash: templates.phash,
+        moderation_status: templates.moderation_status,
+      })
+      .from(templates)
+      .where(isNull(templates.deleted_at));
   } catch (err) {
-    console.warn("[Repository] findExistingHashes fallback:", err);
+    console.warn("[Repository] findPerceptualCandidates fallback:", err);
     return [];
   }
 }

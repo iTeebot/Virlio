@@ -9,10 +9,10 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../../../apps/web/.env") });
 dotenv.config({ path: path.resolve(__dirname, "../../../apps/web/.env.local") });
 
-const dbUrl = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL;
+const dbUrl = (process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL)!;
 
 if (!dbUrl) {
-  console.error("❌ Missing DATABASE_URL or DIRECT_DATABASE_URL");
+  console.error("❌ Database URL missing for sync-schema.");
   process.exit(1);
 }
 

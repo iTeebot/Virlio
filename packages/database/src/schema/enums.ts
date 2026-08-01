@@ -15,3 +15,4 @@ export const entityTypeEnum = pgEnum("entity_type", ["user", "brand", "template"
 export const brandRoleEnum = pgEnum("brand_role", ["owner", "manager", "editor"]);
 export const streakCategoryEnum = pgEnum("streak_category", ["login", "meme_generation", "template_upload", "community_contribution", "moderation", "engagement"]);
 export const badgeCategoryEnum = pgEnum("badge_category", ["contribution", "streak", "engagement", "moderation", "special"]);
+

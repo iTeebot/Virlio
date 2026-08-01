@@ -1,5 +1,5 @@
 import { db } from "@virlio/database";
-import { users } from "@virlio/database/schema";
+import { users, templates } from "@virlio/database/schema";
 import { eq, isNull, desc, and } from "drizzle-orm";
 import type { User } from "@virlio/database/types";
 
@@ -66,17 +66,51 @@ export async function softDelete(id: string) {
 }
 
 /**
- * Find public profiles
+ * Find public profiles with dynamically computed contribution score
  */
 export async function findPublicProfiles(options: { limit?: number; offset?: number; sort?: string }) {
   const limit = options.limit || 10;
   const offset = options.offset || 0;
-  return db.query.users.findMany({
+
+  const rawProfiles = await db.query.users.findMany({
     where: isNull(users.deleted_at),
-    limit,
-    offset,
-    orderBy: desc(users.created_at),
+    limit: 50,
+    with: {
+      userBadges: {
+        columns: {
+          badge_id: true,
+        },
+      },
+    },
   });
+
+  const enriched = await Promise.all(
+    rawProfiles.map(async (u) => {
+      try {
+        const userTemplates = await db.query.templates.findMany({
+          where: eq(templates.uploaded_by, u.id),
+        });
+
+        const templateCount = userTemplates.length;
+        const totalDownloads = userTemplates.reduce((acc, t) => acc + (t.downloads_count || 0), 0);
+        const totalUpvotes = userTemplates.reduce((acc, t) => acc + (t.upvotes_count || 0), 0);
+
+        const computedScore = (templateCount * 50) + (totalDownloads * 2) + (totalUpvotes * 5);
+        const finalScore = Math.max(u.contributor_score || 0, computedScore);
+
+        return {
+          ...u,
+          contributor_score: finalScore,
+        };
+      } catch {
+        return u;
+      }
+    })
+  );
+
+  enriched.sort((a, b) => (b.contributor_score || 0) - (a.contributor_score || 0));
+
+  return enriched.slice(offset, offset + limit);
 }
 
 /**

@@ -13,7 +13,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../../apps/web/.env.local") })
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 dotenv.config({ path: path.resolve(__dirname, "../../../.env.local") });
 
-const dbUrl = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL;
+const dbUrl = (process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL)!;
 
 if (!dbUrl || dbUrl.includes("aws-0-region.supabase.com") || dbUrl.includes("<SET_FROM_")) {
   console.error("❌ Invalid connection URL for migration.");
@@ -22,37 +22,50 @@ if (!dbUrl || dbUrl.includes("aws-0-region.supabase.com") || dbUrl.includes("<SE
 
 async function migrate() {
   console.log("🚀 Executing Drizzle SQL migrations against PostgreSQL database...");
-  const sqlFile = path.resolve(__dirname, "../drizzle/0000_useful_enchantress.sql");
+  const drizzleDir = path.resolve(__dirname, "../drizzle");
 
-  if (!fs.existsSync(sqlFile)) {
-    console.error("❌ SQL migration file not found:", sqlFile);
+  if (!fs.existsSync(drizzleDir)) {
+    console.error("❌ Drizzle directory not found:", drizzleDir);
     process.exit(1);
   }
 
-  const rawSql = fs.readFileSync(sqlFile, "utf-8");
-  const statements = rawSql
-    .split("--> statement-breakpoint")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const sqlFiles = fs
+    .readdirSync(drizzleDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
 
   const client = postgres(dbUrl, { prepare: false });
 
   try {
-    for (let i = 0; i < statements.length; i++) {
-      const stmt = statements[i];
-      try {
-        await client.unsafe(stmt);
-      } catch (err: any) {
-        // Ignore "already exists" errors (e.g. types or tables already existing)
-        if (err.code === "42710" || err.code === "42P07" || err.message.includes("already exists")) {
-          // Object already exists, continue
-        } else {
-          console.warn(`  [Notice] Statement ${i + 1}: ${err.message}`);
+    for (const file of sqlFiles) {
+      const filePath = path.join(drizzleDir, file);
+      console.log(`\n  Executing ${file}...`);
+      const rawSql = fs.readFileSync(filePath, "utf-8");
+      const statements = rawSql
+        .split("--> statement-breakpoint")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
+      for (let i = 0; i < statements.length; i++) {
+        const stmt = statements[i];
+        try {
+          await client.unsafe(stmt);
+        } catch (err: any) {
+          if (
+            err.code === "42710" ||
+            err.code === "42P07" ||
+            err.code === "42701" ||
+            err.message.includes("already exists")
+          ) {
+            // Object/column already exists, continue
+          } else {
+            console.warn(`    [Notice] Statement ${i + 1}: ${err.message}`);
+          }
         }
       }
     }
 
-    console.log("✅ Drizzle SQL migration completed successfully!");
+    console.log("\n✅ Drizzle SQL migration completed successfully!");
   } catch (err: any) {
     console.error("❌ Migration failed:", err.message);
     process.exit(1);

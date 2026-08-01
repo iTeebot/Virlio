@@ -1,6 +1,14 @@
 import { voteRepository } from "../repositories";
 
+export async function voteTemplate(userId: string, templateId: string, voteType: "upvote" | "downvote") {
+  return voteRepository.processTemplateVote(userId, templateId, voteType);
+}
+
 export async function vote(userId: string, entityType: string, entityId: string, voteType: "upvote" | "downvote") {
+  if (entityType === "template") {
+    return voteTemplate(userId, entityId, voteType);
+  }
+
   const existingVote = await voteRepository.getUserVote(entityType, entityId, userId);
 
   if (existingVote && (existingVote as any).vote_type === voteType) {
@@ -20,3 +28,4 @@ export async function removeVote(userId: string, entityType: string, entityId: s
 export async function getEntityVotes(entityType: string, entityId: string) {
   return voteRepository.getVoteCounts(entityType, entityId);
 }
+

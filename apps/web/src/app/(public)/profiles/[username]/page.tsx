@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
@@ -12,6 +12,48 @@ import { ActivityContributionGrid } from "@/components/profile/activity-contribu
 import { ReportProfileModal } from "@/components/profile/report-profile-modal";
 import { ShareProfileModal } from "@/components/profile/share-profile-modal";
 import { toast } from "@/components/ui/toast";
+import { useTemplateStore } from "@/providers/template-provider";
+import { useTemplateVote } from "@/hooks/useTemplateVote";
+
+function ProfileTemplateCard({ t }: { t: any }) {
+  const { upvotesCount, isLiked, isPending, handleVote } = useTemplateVote(t.id, {
+    upvotes_count: t.upvotes_count,
+    currentUserVote: t.currentUserVote,
+  });
+
+  return (
+    <div key={t.id} className="virlio-card p-4 bg-white border border-gray-200 rounded-3xl space-y-3">
+      <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
+        {(t.cloudinary_secure_url || t.image_url) ? (
+          <Image src={t.cloudinary_secure_url || t.image_url} alt={t.title || "Template"} fill className="object-cover" />
+        ) : (
+          <div className="flex items-center justify-center h-full text-xs text-gray-400">Template Image</div>
+        )}
+      </div>
+      <h4 className="text-xs font-bold text-gray-900 truncate">{t.title}</h4>
+      <div className="flex items-center justify-between text-[11px] text-gray-500">
+        <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100 font-bold">{t.category || "General"}</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => handleVote("upvote")}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border transition ${
+              isLiked ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+            }`}
+          >
+            <ThumbsUp className="w-3 h-3" />
+            <span>{upvotesCount}</span>
+          </button>
+          <Link href={`/templates/${t.slug || t.id}`} className="text-blue-600 font-bold hover:underline flex items-center gap-1">
+            <span>Use</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 import {
   Calendar,
   Award,
@@ -161,7 +203,7 @@ function formatUnlockedAt(dateInput: string | Date | null | undefined): string {
   });
 }
 
-export default function UserPublicProfilePage() {
+function UserPublicProfileContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -183,6 +225,14 @@ export default function UserPublicProfilePage() {
   // Modals
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  const { syncTemplates } = useTemplateStore();
+
+  useEffect(() => {
+    if (profile?.public_templates && profile.public_templates.length > 0) {
+      syncTemplates(profile.public_templates);
+    }
+  }, [profile?.public_templates, syncTemplates]);
 
   useEffect(() => {
     if (!rawUsername) return;
@@ -338,6 +388,7 @@ export default function UserPublicProfilePage() {
   const featuredBrand = profile.featured_brand;
   const publicMemes = profile.public_memes || [];
   const publicTemplates = profile.public_templates || [];
+
   const activityTimeline = profile.activity_timeline || [];
   const stats = profile.contribution_stats || {
     templates_uploaded: publicTemplates.length,
@@ -857,8 +908,8 @@ export default function UserPublicProfilePage() {
               <div>
                 {publicTemplates.length === 0 ? (
                   <div className="virlio-card p-8 sm:p-12 text-center bg-white border border-gray-200 rounded-3xl space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mx-auto">
-                      <Layers className="w-6 h-6" />
+                    <div className="relative w-36 h-36 mx-auto">
+                      <Image src="/images/empty_state/no_templates.png" alt="No Templates Illustration" fill className="object-contain" />
                     </div>
                     <h3 className="text-sm font-bold text-gray-900">No templates uploaded yet</h3>
                     <p className="text-xs text-gray-500 max-w-sm mx-auto">
@@ -868,23 +919,7 @@ export default function UserPublicProfilePage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                     {publicTemplates.map((t) => (
-                      <div key={t.id} className="virlio-card p-4 bg-white border border-gray-200 rounded-3xl space-y-3">
-                        <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
-                          {t.image_url ? (
-                            <Image src={t.image_url} alt={t.title || "Template"} fill className="object-cover" />
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-xs text-gray-400">Template Image</div>
-                          )}
-                        </div>
-                        <h4 className="text-xs font-bold text-gray-900 truncate">{t.title}</h4>
-                        <div className="flex items-center justify-between text-[11px] text-gray-500">
-                          <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100 font-bold">{t.category || "General"}</span>
-                          <Link href={`/templates/${t.slug}`} className="text-blue-600 font-bold hover:underline flex items-center gap-1">
-                            <span>Use Template</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
-                        </div>
-                      </div>
+                      <ProfileTemplateCard key={t.id} t={t} />
                     ))}
                   </div>
                 )}
@@ -1009,5 +1044,19 @@ export default function UserPublicProfilePage() {
         displayName={displayName}
       />
     </div>
+  );
+}
+
+export default function UserPublicProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white text-gray-600">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        </div>
+      }
+    >
+      <UserPublicProfileContent />
+    </Suspense>
   );
 }

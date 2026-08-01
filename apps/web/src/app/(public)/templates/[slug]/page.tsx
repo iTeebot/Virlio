@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { ErrorPageLayout } from "@/components/errors/ErrorPageLayout";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -38,20 +39,34 @@ interface TemplateDetail {
   downloads_count: number;
   contributor_username: string;
   is_approved?: boolean;
+  currentUserVote?: "upvote" | "downvote" | null;
+  user_vote?: "upvote" | "downvote" | null;
 }
+
+import { useTemplateStore } from "@/providers/template-provider";
+import { useTemplateVote } from "@/hooks/useTemplateVote";
 
 export default function TemplateDetailPage() {
   const params = useParams();
   const router = useRouter();
   const slug = (params?.slug as string) || "";
+  const { syncTemplates } = useTemplateStore();
 
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Voting & Interaction State
-  const [userVoted, setUserVoted] = useState<"upvote" | "downvote" | null>(null);
-  const [upvotesCount, setUpvotesCount] = useState(0);
+  const {
+    upvotesCount,
+    isLiked,
+    isDisliked,
+    isPending,
+    handleVote,
+  } = useTemplateVote(template?.id || "", {
+    upvotes_count: template?.upvotes_count,
+    currentUserVote: template?.currentUserVote,
+  });
+
   const [downloadsCount, setDownloadsCount] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -77,7 +92,7 @@ export default function TemplateDetailPage() {
         const json = await res.json();
         const data = json.data || json;
         setTemplate(data);
-        setUpvotesCount(data.upvotes_count || 0);
+        syncTemplates([data]);
         setDownloadsCount(data.downloads_count || 0);
       } catch (err: any) {
         setError(err.message || "Failed to load template details");
@@ -87,41 +102,7 @@ export default function TemplateDetailPage() {
     }
 
     fetchDetail();
-  }, [slug]);
-
-  const handleVote = async (type: "upvote" | "downvote") => {
-    if (!template) return;
-
-    try {
-      const res = await fetch(`/api/v1/templates/${template.id}/vote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voteType: type }),
-      });
-
-      if (res.status === 401) {
-        router.push(`/login?callbackUrl=${encodeURIComponent(`/templates/${slug}`)}`);
-        return;
-      }
-
-      if (res.ok) {
-        let delta = 0;
-        if (userVoted === type) {
-          setUserVoted(null);
-          delta = type === "upvote" ? -1 : 1;
-        } else if (userVoted) {
-          setUserVoted(type);
-          delta = type === "upvote" ? 2 : -2;
-        } else {
-          setUserVoted(type);
-          delta = type === "upvote" ? 1 : -1;
-        }
-        setUpvotesCount((prev) => Math.max(0, prev + delta));
-      }
-    } catch {
-      // Fail silently
-    }
-  };
+  }, [slug, syncTemplates]);
 
   const handleDownload = async () => {
     if (!template || !template.cloudinary_secure_url) return;
@@ -210,17 +191,18 @@ export default function TemplateDetailPage() {
               <p className="text-sm font-semibold text-gray-600">Loading Meme Template Details...</p>
             </div>
           ) : error || !template ? (
-            <div className="virlio-surface p-12 border border-rose-200 bg-rose-50 text-center space-y-4 rounded-3xl">
-              <AlertTriangle className="w-8 h-8 text-rose-600 mx-auto" />
-              <h2 className="text-xl font-bold text-gray-900">Template Not Found</h2>
-              <p className="text-xs text-gray-600">{error || "The requested template could not be located."}</p>
-              <Link
-                href="/templates"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700"
-              >
-                Browse All Templates
-              </Link>
-            </div>
+            <ErrorPageLayout
+              imageSrc="/images/errors/content_removed.png"
+              imageAlt="Template Not Found Illustration"
+              title="Template Not Found"
+              description={error || "The requested template could not be located or may have been removed."}
+              httpStatus={404}
+              primaryButtonText="Browse All Templates"
+              primaryButtonHref="/templates"
+              secondaryButtonText="Go Back"
+              primaryButtonIconName="explore"
+              secondaryButtonIconName="back"
+            />
           ) : (
             <div className="virlio-surface p-6 sm:p-10 border border-gray-200 grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Meme Template Image Preview Box */}
@@ -308,9 +290,10 @@ export default function TemplateDetailPage() {
                     <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                       <button
                         type="button"
+                        disabled={isPending}
                         onClick={() => handleVote("upvote")}
                         className={`p-2 rounded-lg transition-colors flex items-center gap-1 font-semibold ${
-                          userVoted === "upvote" ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-200"
+                          isLiked ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-200"
                         }`}
                         title="Upvote Template"
                       >
@@ -320,9 +303,10 @@ export default function TemplateDetailPage() {
 
                       <button
                         type="button"
+                        disabled={isPending}
                         onClick={() => handleVote("downvote")}
                         className={`p-2 rounded-lg transition-colors ${
-                          userVoted === "downvote" ? "bg-rose-600 text-white" : "text-slate-500 hover:bg-slate-200"
+                          isDisliked ? "bg-rose-600 text-white" : "text-slate-500 hover:bg-slate-200"
                         }`}
                         title="Downvote Template"
                       >

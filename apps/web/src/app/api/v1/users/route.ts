@@ -29,6 +29,14 @@ export const PATCH = withErrorHandling(async (req: NextRequest) => {
   if (country !== undefined) updateData.country = country.trim();
   if (website !== undefined) updateData.website = website.trim();
   if (language !== undefined) updateData.language = language.trim();
+  if (body.image !== undefined) {
+    updateData.image = body.image.trim();
+    updateData.avatar_url = body.image.trim();
+  }
+  if (body.avatar_url !== undefined) {
+    updateData.avatar_url = body.avatar_url.trim();
+    if (!updateData.image) updateData.image = body.avatar_url.trim();
+  }
 
   if (username !== undefined && username.trim()) {
     const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -44,5 +52,13 @@ export const PATCH = withErrorHandling(async (req: NextRequest) => {
   }
 
   const updatedUser = await userRepository.update(session.user.id, updateData);
+
+  // Recalculate stats & trust score after profile changes
+  const { userStatsEngine } = await import("@/server/services/user-stats-engine.service");
+  await userStatsEngine.getUserStatistics(session.user.id).catch(() => null);
+
+  const { activityEngine } = await import("@/server/services/activity-engine.service");
+  await activityEngine.recordActivity(session.user.id, "profile_updated").catch(() => null);
+
   return apiSuccess(updatedUser);
 });

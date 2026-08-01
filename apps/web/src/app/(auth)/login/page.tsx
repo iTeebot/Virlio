@@ -10,6 +10,8 @@ import { FormInput, FormCheckbox, validateInput } from "@/components/ui/form-inp
 import { toast } from "@/components/ui/toast";
 import { Loader2, ArrowRight } from "lucide-react";
 
+import { getAuthErrorMessage } from "@/lib/auth/auth-error-mapper";
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const { status } = useSession();
@@ -24,39 +26,21 @@ function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [authErrorObj, setAuthErrorObj] = useState<any>(null);
 
   useEffect(() => {
     const urlError = searchParams?.get("error");
+    const isDeleted = searchParams?.get("deleted");
+
+    if (isDeleted === "true") {
+      toast.info("Your account has been deleted. We're sorry to see you go!", "Account Deleted");
+    }
+
     if (urlError) {
-      if (urlError === "CredentialsSignin" || urlError === "AccountNotFound") {
-        const msg = "Invalid email or password. Account not found or wrong credentials.";
-        setErrors((prev) => ({ ...prev, general: msg }));
-        toast.error(msg, "Authentication Error");
-      } else if (
-        urlError.includes("OAuthCallback") ||
-        urlError.includes("user_cancelled") ||
-        urlError.includes("Callback")
-      ) {
-        const msg = "Social sign-in was canceled or encountered a callback error. Please try again.";
-        setErrors((prev) => ({ ...prev, general: msg }));
-        toast.error(msg, "Social Auth Interrupted");
-      } else if (urlError === "Configuration" || urlError === "AdapterError") {
-        const msg = "Database schema error: missing required auth tables in PostgreSQL. Please run database migrations.";
-        setErrors((prev) => ({ ...prev, general: msg }));
-        toast.error(msg, "Database Schema Error");
-      } else if (urlError === "OAuthSignin") {
-        const msg = "Social sign-in provider is not configured yet. Missing API credentials.";
-        setErrors((prev) => ({ ...prev, general: msg }));
-        toast.error(msg, "Social Auth Error");
-      } else if (urlError === "AccessDenied") {
-        const msg = "Access denied. Sign-in request was canceled or declined.";
-        setErrors((prev) => ({ ...prev, general: msg }));
-        toast.error(msg, "Access Denied");
-      } else {
-        const msg = `Authentication error: ${urlError}`;
-        setErrors((prev) => ({ ...prev, general: msg }));
-        toast.error(msg, "Sign In Error");
-      }
+      const errObj = getAuthErrorMessage(urlError);
+      setAuthErrorObj(errObj);
+      setErrors((prev) => ({ ...prev, general: errObj.description }));
+      toast.error(errObj.description, errObj.title);
     }
   }, [searchParams]);
 

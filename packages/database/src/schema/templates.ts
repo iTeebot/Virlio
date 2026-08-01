@@ -66,7 +66,7 @@ export const templates = pgTable("templates", {
   trending_score: integer("trending_score").default(0),
   upvotes_count: integer("upvotes_count").default(0),
   downloads_count: integer("downloads_count").default(0),
-  uploaded_by: uuid("uploaded_by").notNull().references(() => users.id),
+  uploaded_by: uuid("uploaded_by").references(() => users.id),
   created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   deleted_at: timestamp("deleted_at", { mode: "date", withTimezone: true }),

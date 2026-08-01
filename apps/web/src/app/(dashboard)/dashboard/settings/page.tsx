@@ -5,6 +5,9 @@ import Image from "next/image";
 import { useSession, signIn } from "next-auth/react";
 import { toast } from "@/components/ui/toast";
 import { ProfileScoreResult } from "@/lib/services/profile-score.service";
+import { EmailOTPVerificationWidget } from "@/components/brands/email-otp-verification-widget";
+import { SharedImageUploader } from "@/components/brands/shared-image-uploader";
+import { DeleteAccountModal } from "@/components/settings/delete-account-modal";
 import {
   User,
   ShieldCheck,
@@ -126,34 +129,16 @@ export default function SettingsPage() {
   const [bio, setBio] = useState("");
   const [country, setCountry] = useState("");
   const [website, setWebsite] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   // User Data Deletion States
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
-  const handleDeleteAccount = async () => {
-    try {
-      setIsDeletingAccount(true);
-      const res = await fetch("/api/v1/users/delete-account", {
-        method: "DELETE",
-      });
-
-      const json = await res.json();
-      if (res.ok && json.success) {
-        toast.success("Your account and associated data have been permanently erased.", "Account Deleted");
-        setTimeout(() => {
-          signIn(undefined, { callbackUrl: "/" });
-        }, 1000);
-      } else {
-        toast.error(json.error || "Failed to delete account", "Error");
-      }
-    } catch (err) {
-      toast.error("Error deleting account. Please try again.", "Error");
-    } finally {
-      setIsDeletingAccount(false);
-      setShowDeleteModal(false);
-    }
+  const handleAvatarUploadSuccess = (url: string) => {
+    setAvatarUrl(url);
+    toast.success("Profile picture uploaded! Click 'Save Profile Changes' to save.", "Avatar Uploaded");
   };
 
   // Fetch Accounts & Profile Score
@@ -181,6 +166,7 @@ export default function SettingsPage() {
           if (u.bio) setBio(u.bio);
           if (u.country) setCountry(u.country);
           if (u.website) setWebsite(u.website);
+          if (u.image || u.avatar_url) setAvatarUrl(u.image || u.avatar_url);
         }
       }
     } catch (err) {
@@ -196,6 +182,7 @@ export default function SettingsPage() {
       if (session?.user) {
         setName((prev) => prev || session.user.name || "");
         setUsername((prev) => prev || session.user.username || "");
+        setAvatarUrl((prev) => prev || session.user.image || "");
       }
     }
   }, [status, session]);
@@ -247,12 +234,12 @@ export default function SettingsPage() {
       const res = await fetch("/api/v1/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, username, bio, country, website }),
+        body: JSON.stringify({ name, username, bio, country, website, image: avatarUrl, avatar_url: avatarUrl }),
       });
 
       const json = await res.json();
       if (res.ok && json.success) {
-        toast.success("Profile location and information saved successfully!", "Profile Updated");
+        toast.success("Profile photo and information saved successfully!", "Profile Updated");
         loadSettingsData();
       } else {
         toast.error(json.error || "Failed to update profile", "Error");
@@ -469,6 +456,20 @@ export default function SettingsPage() {
         </div>
 
         <form onSubmit={handleSaveProfile} className="space-y-4 max-w-2xl">
+          {/* Avatar / Display Picture Uploader */}
+          <div>
+            <label className="block text-xs font-bold text-gray-900 mb-2">
+              Profile Display Picture (DP / Avatar)
+            </label>
+            <SharedImageUploader
+              label="Profile Photo / Avatar DP"
+              value={avatarUrl}
+              onChange={(url) => setAvatarUrl(url)}
+              folder="virlio/user-avatars"
+              description="Upload a custom profile photo or avatar picture to display across Virlio."
+            />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
@@ -502,17 +503,17 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              Email Address (Primary Account)
-            </label>
-            <input
-              type="email"
-              value={session?.user?.email || ""}
-              disabled
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-xs font-medium text-gray-500 cursor-not-allowed"
-            />
-          </div>
+          <EmailOTPVerificationWidget
+            email={session?.user?.email || ""}
+            onEmailChange={() => {}}
+            onVerifiedStatusChange={(verified) => {
+              setIsEmailVerified(verified);
+              if (verified) {
+                toast.success("Primary account email verified successfully!", "Email Verified");
+              }
+            }}
+            isVerified={isEmailVerified || Boolean((session?.user as any)?.emailVerified)}
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -682,60 +683,10 @@ export default function SettingsPage() {
       )}
 
       {/* Confirmation Account Deletion Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div
-            className="relative w-full max-w-md bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setShowDeleteModal(false)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto mb-3 text-red-600">
-                <Trash2 className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900">
-                Permanently Delete Account & Data?
-              </h3>
-              <p className="text-xs text-gray-600 mt-2 leading-relaxed">
-                This action is permanent and cannot be undone. All your profile information, connected OAuth accounts, saved memes, and verification history will be deleted immediately.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                className="py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                disabled={isDeletingAccount}
-                className="py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-              >
-                {isDeletingAccount ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Erasing...</span>
-                  </>
-                ) : (
-                  <span>Yes, Delete Everything</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteAccountModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 }

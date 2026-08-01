@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
       ...parsed,
       brand_id: authCheck.brand.id,
     });
+    const { activityEngine } = await import("@/server/services/activity-engine.service");
+    await activityEngine.recordActivity(session.user.id, "meme_generated", "meme", meme?.id || undefined, { brand_id: parsed.brand_id }).catch(() => null);
     return apiSuccess(meme, 201);
   } catch (error: any) {
     if (error instanceof z.ZodError) return apiValidationError(error.issues);

@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { users, accounts, sessions } from "./auth";
-import { brands, brandMembers } from "./brands";
+import { brands, brandMembers, brandDrafts, brandKnowledgeBases, brandVerifications, brandInvitations, brandAuditLogs, brandTaxonomies } from "./brands";
 import { templates } from "./templates";
 import { memes } from "./memes";
 import { comments, votes, bookmarks } from "./engagement";
@@ -34,6 +34,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   notifications: many(notifications),
   userStats: one(userStats, { fields: [users.id], references: [userStats.user_id] }),
   assets: many(cloudAssets),
+  drafts: many(brandDrafts),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -50,11 +51,37 @@ export const brandsRelations = relations(brands, ({ one, many }) => ({
   memes: many(memes),
   brandBadges: many(brandBadges),
   stats: one(brandStats, { fields: [brands.id], references: [brandStats.brand_id] }),
+  knowledgeBase: one(brandKnowledgeBases, { fields: [brands.id], references: [brandKnowledgeBases.brand_id] }),
+  verification: one(brandVerifications, { fields: [brands.id], references: [brandVerifications.brand_id] }),
+  invitations: many(brandInvitations),
+  auditLogs: many(brandAuditLogs),
 }));
 
 export const brandMembersRelations = relations(brandMembers, ({ one }) => ({
   brand: one(brands, { fields: [brandMembers.brand_id], references: [brands.id] }),
   user: one(users, { fields: [brandMembers.user_id], references: [users.id] }),
+}));
+
+export const brandDraftsRelations = relations(brandDrafts, ({ one }) => ({
+  user: one(users, { fields: [brandDrafts.user_id], references: [users.id] }),
+}));
+
+export const brandKnowledgeBasesRelations = relations(brandKnowledgeBases, ({ one }) => ({
+  brand: one(brands, { fields: [brandKnowledgeBases.brand_id], references: [brands.id] }),
+}));
+
+export const brandVerificationsRelations = relations(brandVerifications, ({ one }) => ({
+  brand: one(brands, { fields: [brandVerifications.brand_id], references: [brands.id] }),
+}));
+
+export const brandInvitationsRelations = relations(brandInvitations, ({ one }) => ({
+  brand: one(brands, { fields: [brandInvitations.brand_id], references: [brands.id] }),
+  inviter: one(users, { fields: [brandInvitations.invited_by], references: [users.id] }),
+}));
+
+export const brandAuditLogsRelations = relations(brandAuditLogs, ({ one }) => ({
+  brand: one(brands, { fields: [brandAuditLogs.brand_id], references: [brands.id] }),
+  user: one(users, { fields: [brandAuditLogs.user_id], references: [users.id] }),
 }));
 
 export const templatesRelations = relations(templates, ({ one, many }) => ({

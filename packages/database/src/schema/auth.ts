@@ -5,7 +5,7 @@ import { accountStatusEnum, accountTypeEnum, roleEnum, visibilityEnum } from "./
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name"),
-  email: text("email").notNull().unique(),
+  email: text("email"),
   emailVerified: timestamp("emailVerified", { mode: "date", withTimezone: true }),
   image: text("image"),
   username: text("username"),
@@ -30,6 +30,8 @@ export const users = pgTable("users", {
   created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   updated_at: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   deleted_at: timestamp("deleted_at", { mode: "date", withTimezone: true }),
+  deleted_by: uuid("deleted_by"),
+  deletion_reason: text("deletion_reason"),
 }, (table) => ({
   usernameIdx: uniqueIndex("users_username_idx").on(table.username).where(isNull(table.deleted_at)),
   emailIdx: index("users_email_idx").on(table.email),

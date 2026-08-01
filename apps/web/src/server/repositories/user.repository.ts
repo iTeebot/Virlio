@@ -84,23 +84,19 @@ export async function findPublicProfiles(options: { limit?: number; offset?: num
     },
   });
 
+  const { userStatsEngine } = await import("@/server/services/user-stats-engine.service");
+
   const enriched = await Promise.all(
     rawProfiles.map(async (u) => {
       try {
-        const userTemplates = await db.query.templates.findMany({
-          where: eq(templates.uploaded_by, u.id),
-        });
-
-        const templateCount = userTemplates.length;
-        const totalDownloads = userTemplates.reduce((acc, t) => acc + (t.downloads_count || 0), 0);
-        const totalUpvotes = userTemplates.reduce((acc, t) => acc + (t.upvotes_count || 0), 0);
-
-        const computedScore = (templateCount * 50) + (totalDownloads * 2) + (totalUpvotes * 5);
-        const finalScore = Math.max(u.contributor_score || 0, computedScore);
-
+        const stats = await userStatsEngine.getUserStatistics(u.id);
         return {
           ...u,
-          contributor_score: finalScore,
+          trust_score: stats.trustScore,
+          contributor_score: stats.xp,
+          current_streak: stats.currentStreak,
+          longest_streak: stats.longestStreak,
+          level: stats.level,
         };
       } catch {
         return u;

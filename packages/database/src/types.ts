@@ -19,6 +19,24 @@ export type NewBrand = InferInsertModel<typeof schema.brands>;
 export type BrandMember = InferSelectModel<typeof schema.brandMembers>;
 export type NewBrandMember = InferInsertModel<typeof schema.brandMembers>;
 
+export type BrandDraft = InferSelectModel<typeof schema.brandDrafts>;
+export type NewBrandDraft = InferInsertModel<typeof schema.brandDrafts>;
+
+export type BrandKnowledgeBase = InferSelectModel<typeof schema.brandKnowledgeBases>;
+export type NewBrandKnowledgeBase = InferInsertModel<typeof schema.brandKnowledgeBases>;
+
+export type BrandVerification = InferSelectModel<typeof schema.brandVerifications>;
+export type NewBrandVerification = InferInsertModel<typeof schema.brandVerifications>;
+
+export type BrandInvitation = InferSelectModel<typeof schema.brandInvitations>;
+export type NewBrandInvitation = InferInsertModel<typeof schema.brandInvitations>;
+
+export type BrandAuditLog = InferSelectModel<typeof schema.brandAuditLogs>;
+export type NewBrandAuditLog = InferInsertModel<typeof schema.brandAuditLogs>;
+
+export type BrandTaxonomy = InferSelectModel<typeof schema.brandTaxonomies>;
+export type NewBrandTaxonomy = InferInsertModel<typeof schema.brandTaxonomies>;
+
 export type Template = InferSelectModel<typeof schema.templates>;
 export type NewTemplate = InferInsertModel<typeof schema.templates>;
 

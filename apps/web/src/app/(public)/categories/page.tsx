@@ -39,27 +39,50 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export default function CategoriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
 
   useEffect(() => {
-    async function fetchCounts() {
+    async function fetchCategories() {
       try {
         const res = await fetch("/api/v1/categories");
         if (res.ok) {
           const json = await res.json();
-          const counts = json.data || json;
-          if (typeof counts === "object" && counts !== null) {
-            setCategoryCounts(counts);
-          }
+          const data = json.data || json;
+          const apiCategories = Array.isArray(data?.categories) ? data.categories : [];
+          const counts = data?.counts || {};
+
+          // Build merged list starting with predefined categories
+          const merged = PREDEFINED_CATEGORIES.map((p) => ({
+            ...p,
+            count: counts[p.slug] ?? 0,
+          }));
+
+          // Add any custom categories present in DB that aren't in predefined list
+          apiCategories.forEach((cat: any) => {
+            if (!merged.some((m) => m.slug.toLowerCase() === cat.slug.toLowerCase())) {
+              merged.push({
+                id: cat.id || `custom-${cat.slug}`,
+                slug: cat.slug,
+                name: cat.name,
+                description: cat.description || `Community meme templates created under ${cat.name}.`,
+                iconName: "Code",
+                count: cat.count || counts[cat.slug] || 0,
+              });
+            }
+          });
+
+          setCategoriesList(merged);
         }
       } catch (err) {
-        // Fallback to 0
+        setCategoriesList(PREDEFINED_CATEGORIES.map((p) => ({ ...p, count: 0 })));
       }
     }
-    fetchCounts();
+    fetchCategories();
   }, []);
 
-  const filteredCategories = PREDEFINED_CATEGORIES.filter((cat) =>
+  const displayList = categoriesList.length > 0 ? categoriesList : PREDEFINED_CATEGORIES.map((p) => ({ ...p, count: 0 }));
+
+  const filteredCategories = displayList.filter((cat) =>
     cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     cat.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -98,7 +121,7 @@ export default function CategoriesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCategories.map((cat) => {
               const Icon = ICON_MAP[cat.iconName] || Code;
-              const count = categoryCounts[cat.slug] ?? 0;
+              const count = cat.count ?? 0;
 
               return (
                 <div key={cat.slug} className="virlio-card p-6 flex flex-col justify-between bg-white border border-gray-200">

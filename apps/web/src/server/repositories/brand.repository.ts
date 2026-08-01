@@ -45,7 +45,7 @@ export async function findPublicBrands(options: { limit?: number; offset?: numbe
     where: isNull(brands.deleted_at),
     limit: options.limit || 10,
     offset: options.offset || 0,
-    orderBy: desc(brands.created_at),
+    orderBy: [desc(brands.brand_score), desc(brands.digital_presence_score), desc(brands.created_at)],
   });
 }
 

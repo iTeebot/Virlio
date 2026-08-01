@@ -1,6 +1,6 @@
 import { db } from "@virlio/database";
 import { templates } from "@virlio/database/schema";
-import { isNull, sql } from "drizzle-orm";
+import { isNull, eq, and, sql } from "drizzle-orm";
 import { apiSuccess } from "@/lib/utils/api-response";
 import { PREDEFINED_CATEGORIES } from "@/lib/constants/categories";
 
@@ -17,31 +17,56 @@ export async function GET() {
       categoryMap.set(c.slug, { id: c.id, slug: c.slug, name: c.name, isCustom: false });
     });
 
-    // 2. Aggregate counts from DB for all categories (including user-created global categories)
+    // 2. Aggregate counts from DB for approved public templates only
     const rows = await db
       .select({
         category: templates.category,
         count: sql<number>`count(*)::int`,
       })
       .from(templates)
-      .where(isNull(templates.deleted_at))
+      .where(
+        and(
+          isNull(templates.deleted_at),
+          eq(templates.visibility, "public"),
+          eq(templates.moderation_status, "approved")
+        )
+      )
       .groupBy(templates.category);
+
+    // Build a reverse lookup: lowercase name -> predefined slug
+    const nameToSlug = new Map<string, string>();
+    PREDEFINED_CATEGORIES.forEach((c) => {
+      nameToSlug.set(c.name.toLowerCase(), c.slug);
+      nameToSlug.set(c.slug.toLowerCase(), c.slug);
+    });
 
     rows.forEach((r) => {
       if (r.category) {
         const rawName = r.category.trim();
-        const slug = rawName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_-]/g, "");
-        if (!slug) return;
+        const generatedSlug = rawName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_-]/g, "");
+        if (!generatedSlug) return;
 
-        categoryCounts[slug] = r.count;
+        // Try to match to a predefined category by name or slug
+        const matchedSlug =
+          nameToSlug.get(rawName.toLowerCase()) ||
+          nameToSlug.get(generatedSlug) ||
+          null;
 
-        if (!categoryMap.has(slug)) {
-          categoryMap.set(slug, {
-            id: `custom-${slug}`,
-            slug,
-            name: rawName,
-            isCustom: true,
-          });
+        if (matchedSlug) {
+          // Accumulate count into predefined category
+          categoryCounts[matchedSlug] = (categoryCounts[matchedSlug] || 0) + r.count;
+        } else {
+          // Custom category not in predefined list
+          categoryCounts[generatedSlug] = (categoryCounts[generatedSlug] || 0) + r.count;
+
+          if (!categoryMap.has(generatedSlug)) {
+            categoryMap.set(generatedSlug, {
+              id: `custom-${generatedSlug}`,
+              slug: generatedSlug,
+              name: rawName,
+              isCustom: true,
+            });
+          }
         }
       }
     });

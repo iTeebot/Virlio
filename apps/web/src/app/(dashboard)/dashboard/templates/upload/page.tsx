@@ -23,6 +23,7 @@ import {
   Plus,
   X,
   Clipboard,
+  ExternalLink,
 } from "lucide-react";
 import { PREDEFINED_CATEGORIES } from "@/lib/constants/categories";
 import { validateCategoryContent } from "@/lib/utils/explicit-content-filter";
@@ -58,6 +59,9 @@ interface AnalysisResult {
   moderationStatus: string;
   processingStatus: string;
   isDuplicate: boolean;
+  duplicateStatus?: string;
+  duplicateOfTemplateId?: string;
+  existingTemplateSlug?: string;
   cloudinaryUrl: string;
   cloudinaryPath: string;
   contributorUsername: string;
@@ -441,15 +445,55 @@ export default function TemplateUploadPage() {
             </div>
           </div>
 
+          {(result.isDuplicate || result.processingStatus === "DUPLICATE") && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center shrink-0">
+                  <Copy className="w-5 h-5 text-purple-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-purple-900">Template Already Exists</h3>
+                  <p className="text-xs text-purple-700 mt-0.5">
+                    This exact or visually equivalent template is already available on Virlio.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                <Link
+                  href={`/templates/${result.existingTemplateSlug || result.duplicateOfTemplateId || ""}`}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>View Existing Template</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={clearFile}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-purple-300 text-purple-800 hover:bg-purple-100 transition-colors"
+                >
+                  <span>Back to Upload</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Image Preview & Cloudinary Path */}
             <div className="space-y-4">
               <div className="aspect-video bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center p-3">
-                <img
-                  src={result.cloudinaryUrl}
-                  alt={result.analysis.title}
-                  className="max-h-full max-w-full object-contain"
-                />
+                {result.cloudinaryUrl ? (
+                  <img
+                    src={result.cloudinaryUrl}
+                    alt={result.analysis.title}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-slate-400">
+                    <ImageIcon className="w-10 h-10" />
+                    <span className="text-xs">Original template exists on Virlio</span>
+                  </div>
+                )}
               </div>
 
               {/* <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-lg space-y-1">

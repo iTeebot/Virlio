@@ -32,6 +32,24 @@ export const templates = pgTable("templates", {
   sha256_hash: text("sha256_hash"),
   phash: text("phash"),
   dhash: text("dhash"),
+  // Layered Fingerprinting & Identity
+  original_sha256: text("original_sha256"),
+  canonical_image_sha256: text("canonical_image_sha256"),
+  perceptual_hash: text("perceptual_hash"),
+  embedding_reference: text("embedding_reference"),
+  duplicate_status: text("duplicate_status").default("unique"),
+  duplicate_of_template_id: uuid("duplicate_of_template_id"),
+  duplicate_confidence: integer("duplicate_confidence").default(0),
+  duplicate_checked_at: timestamp("duplicate_checked_at", { mode: "date", withTimezone: true }),
+  fingerprint_version: text("fingerprint_version").default("v1"),
+  // User metadata hints (Provenance tracking)
+  user_title_hint: text("user_title_hint"),
+  user_description_hint: text("user_description_hint"),
+  user_category_hint: text("user_category_hint"),
+  user_subcategory_hint: text("user_subcategory_hint"),
+  user_tags_hint: jsonb("user_tags_hint"),
+  user_language_hint: text("user_language_hint"),
+  user_country_hint: text("user_country_hint"),
   // OCR & AI extraction
   ocr_text: text("ocr_text"),
   ocr_confidence: integer("ocr_confidence").default(0),
@@ -62,4 +80,8 @@ export const templates = pgTable("templates", {
   trendingScoreIdx: index("templates_trending_score_idx").on(table.trending_score),
   sha256Idx: index("templates_sha256_idx").on(table.sha256_hash),
   phashIdx: index("templates_phash_idx").on(table.phash),
+  originalSha256Idx: index("templates_original_sha256_idx").on(table.original_sha256),
+  canonicalSha256Idx: index("templates_canonical_sha256_idx").on(table.canonical_image_sha256),
+  perceptualHashIdx: index("templates_perceptual_hash_idx").on(table.perceptual_hash),
+  duplicateStatusIdx: index("templates_duplicate_status_idx").on(table.duplicate_status),
 }));

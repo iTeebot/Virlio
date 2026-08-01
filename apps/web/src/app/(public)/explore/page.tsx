@@ -19,9 +19,12 @@ import {
   Layers,
 } from "lucide-react";
 
+import { useTemplateStore } from "@/providers/template-provider";
+
 export default function ExplorePage() {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
+  const { syncTemplates } = useTemplateStore();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Trending");
@@ -78,7 +81,10 @@ export default function ExplorePage() {
             upvotes_count: m.upvotes_count || 0,
             comments_count: 0,
             created_at: m.created_at || new Date().toISOString(),
+            currentUserVote: m.currentUserVote || m.user_vote || (m.user_voted ? (m.user_voted === "up" || m.user_voted === "upvote" ? "upvote" : "downvote") : null),
           }));
+
+          syncTemplates(formatted as any);
 
           setPosts((prev) => {
             if (isInitial) return formatted;
@@ -99,7 +105,7 @@ export default function ExplorePage() {
       setInitialLoading(false);
       setIsLoadingMore(false);
     }
-  }, [offset]);
+  }, [offset, syncTemplates]);
 
   useEffect(() => {
     fetchFeed(true);

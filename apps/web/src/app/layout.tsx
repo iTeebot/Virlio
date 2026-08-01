@@ -5,6 +5,7 @@ import { ToastProvider } from "@/providers/toast-provider";
 import { AnimationProvider } from "@/providers/animation-provider";
 import { SiteBackground } from "@/components/layout/site-background";
 import { AccessibilityFloatingToggle } from "@/components/layout/accessibility-toggle";
+import { TemplateProvider } from "@/providers/template-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -53,9 +54,11 @@ export default function RootLayout({
         <SessionProviderWrapper>
           <AnimationProvider>
             <ToastProvider>
-              <SiteBackground />
-              {children}
-              <AccessibilityFloatingToggle />
+              <TemplateProvider>
+                <SiteBackground />
+                {children}
+                <AccessibilityFloatingToggle />
+              </TemplateProvider>
             </ToastProvider>
           </AnimationProvider>
         </SessionProviderWrapper>

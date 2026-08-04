@@ -12,6 +12,7 @@ import { ActivityContributionGrid } from "@/components/profile/activity-contribu
 import { ReportProfileModal } from "@/components/profile/report-profile-modal";
 import { ShareProfileModal } from "@/components/profile/share-profile-modal";
 import { toast } from "@/components/ui/toast";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useTemplateStore } from "@/providers/template-provider";
 import { useTemplateVote } from "@/hooks/useTemplateVote";
 
@@ -461,19 +462,14 @@ function UserPublicProfileContent() {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                 {/* User Avatar */}
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-blue-50 border-4 border-white shadow-md flex items-center justify-center shrink-0">
-                  {profile.image ? (
-                    <Image
-                      src={profile.image}
-                      alt={displayName}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  ) : (
-                    <User className="w-12 h-12 text-blue-600" />
-                  )}
-                </div>
+                <UserAvatar
+                  src={profile.image}
+                  name={displayName}
+                  username={profile.username}
+                  size="xl"
+                  isCurrentUser={session?.user?.username === profile.username}
+                  priority
+                />
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -999,9 +995,9 @@ function UserPublicProfileContent() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {userBadges.map((ub) => {
-                      const badgeObj = ub.badge;
-                      if (!badgeObj) return null;
+                    {userBadges.map((ub: any) => {
+                      const badgeObj = ub.badge || ub;
+                      if (!badgeObj || (!badgeObj.name && !badgeObj.slug)) return null;
                       const iconUrl = badgeObj.icon_url || "/images/badges/badge_Early_adopter.png";
 
                       return (

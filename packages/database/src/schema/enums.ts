@@ -1,6 +1,6 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
-export const accountStatusEnum = pgEnum("account_status", ["active", "suspended", "banned", "deactivated", "deleted"]);
+export const accountStatusEnum = pgEnum("account_status", ["pending", "active", "suspended", "banned", "deactivated", "deleted"]);
 export const accountTypeEnum = pgEnum("account_type", ["personal", "business", "agency"]);
 export const roleEnum = pgEnum("role", ["user", "contributor", "brand_owner", "moderator", "admin"]);
 export const verificationStatusEnum = pgEnum("verification_status", ["pending", "verified", "rejected", "suspended"]);

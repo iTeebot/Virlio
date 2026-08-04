@@ -5,6 +5,7 @@ import { ToastProvider } from "@/providers/toast-provider";
 import { AnimationProvider } from "@/providers/animation-provider";
 import { SiteBackground } from "@/components/layout/site-background";
 import { AccessibilityFloatingToggle } from "@/components/layout/accessibility-toggle";
+import { UserStoreProvider } from "@/providers/user-store-provider";
 import { TemplateProvider } from "@/providers/template-provider";
 import "./globals.css";
 
@@ -52,15 +53,17 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <SessionProviderWrapper>
-          <AnimationProvider>
-            <ToastProvider>
-              <TemplateProvider>
-                <SiteBackground />
-                {children}
-                <AccessibilityFloatingToggle />
-              </TemplateProvider>
-            </ToastProvider>
-          </AnimationProvider>
+          <UserStoreProvider>
+            <AnimationProvider>
+              <ToastProvider>
+                <TemplateProvider>
+                  <SiteBackground />
+                  {children}
+                  <AccessibilityFloatingToggle />
+                </TemplateProvider>
+              </ToastProvider>
+            </AnimationProvider>
+          </UserStoreProvider>
         </SessionProviderWrapper>
       </body>
     </html>

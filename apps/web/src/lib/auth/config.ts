@@ -4,6 +4,8 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Facebook from "next-auth/providers/facebook";
 import LinkedIn from "next-auth/providers/linkedin";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { db } from "@virlio/database";
 import { users, accounts, sessions, verificationTokens } from "@virlio/database/schema";
 import { env } from "@/lib/config/env";
@@ -114,6 +116,45 @@ if (linkedinCreds) {
   providers.push(LinkedIn({ ...linkedinCreds, allowDangerousEmailAccountLinking: true }));
 }
 
+providers.push(
+  Credentials({
+    name: "Credentials",
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email || !credentials?.password) return null;
+
+      const email = String(credentials.email).trim().toLowerCase();
+      const password = String(credentials.password);
+
+      const user = await userRepository.findByEmail(email);
+      if (!user || !user.password_hash || user.account_status === "deleted") {
+        return null;
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      if (!isValidPassword) {
+        return null;
+      }
+
+      if (!user.emailVerified) {
+        throw new Error("VerificationFailed");
+      }
+
+      return {
+        id: user.id,
+        name: user.name || "",
+        email: user.email || "",
+        image: user.image || user.avatar_url || "",
+        role: (user.role as any) || "user",
+        username: user.username || "",
+      } as any;
+    },
+  })
+);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   debug: false,
@@ -125,7 +166,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   }) as any,
   providers,
   secret: env.AUTH_SECRET,
-  session: { strategy: "database" },
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: {
     signIn: "/login",
     newUser: "/dashboard/overview",
@@ -155,11 +196,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true;
     },
-    async session({ session, user }) {
-      if (session.user && user) {
-        session.user.id = user.id;
-        session.user.role = (user as any).role || "user";
-        session.user.username = (user as any).username || null;
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role || "user";
+        token.username = (user as any).username || null;
+        token.emailVerified = Boolean((user as any).emailVerified || (user as any).email_verified);
+      }
+      return token;
+    },
+    async session({ session, token, user }) {
+      if (session.user) {
+        const uId = token?.id || user?.id;
+        if (uId) session.user.id = uId as string;
+        session.user.role = (token?.role || (user as any)?.role || "user") as any;
+        session.user.username = (token?.username || (user as any)?.username || null) as any;
+        (session.user as any).emailVerified = token?.emailVerified ?? Boolean((user as any)?.emailVerified || (user as any)?.email_verified);
       }
       return session;
     },

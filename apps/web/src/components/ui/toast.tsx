@@ -22,6 +22,23 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+// Helper to ensure toast message and title are always safe renderable strings
+function formatToastString(val: any): string {
+  if (typeof val === "string") return val;
+  if (val === null || val === undefined) return "";
+  if (typeof val === "object") {
+    if (typeof val.message === "string") return val.message;
+    if (typeof val.error === "string") return val.error;
+    if (typeof val.description === "string") return val.description;
+    try {
+      return JSON.stringify(val);
+    } catch {
+      return String(val);
+    }
+  }
+  return String(val);
+}
+
 // Listeners for imperative toast calls outside React component tree
 type ToastListener = (toast: Omit<ToastItem, "id">) => void;
 type RemoveListener = (id: string) => void;
@@ -33,25 +50,25 @@ const removeListeners: Set<RemoveListener> = new Set();
  * Imperative toast function to trigger toasts anywhere in the codebase.
  */
 export const toast = {
-  show: (message: string, options?: { type?: ToastType; title?: string; duration?: number }) => {
+  show: (message: any, options?: { type?: ToastType; title?: any; duration?: number }) => {
     const toastData: Omit<ToastItem, "id"> = {
-      message,
+      message: formatToastString(message),
       type: options?.type || "info",
-      title: options?.title,
+      title: options?.title ? formatToastString(options.title) : undefined,
       duration: options?.duration ?? 5000,
     };
     listeners.forEach((listener) => listener(toastData));
   },
-  error: (message: string, title?: string, duration?: number) => {
+  error: (message: any, title?: any, duration?: number) => {
     toast.show(message, { type: "error", title, duration });
   },
-  success: (message: string, title?: string, duration?: number) => {
+  success: (message: any, title?: any, duration?: number) => {
     toast.show(message, { type: "success", title, duration });
   },
-  warning: (message: string, title?: string, duration?: number) => {
+  warning: (message: any, title?: any, duration?: number) => {
     toast.show(message, { type: "warning", title, duration });
   },
-  info: (message: string, title?: string, duration?: number) => {
+  info: (message: any, title?: any, duration?: number) => {
     toast.show(message, { type: "info", title, duration });
   },
   dismiss: (id: string) => {

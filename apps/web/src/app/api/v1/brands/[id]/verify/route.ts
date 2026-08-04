@@ -67,9 +67,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       forced: forceAdminApprove,
     });
 
-    // Automatically recalculate caller analytics & award Verified Brand badge
-    const { userAnalyticsEngine } = await import("@/server/services/xp-engine.service");
-    await userAnalyticsEngine.recalculateUserAnalytics(session.user.id).catch(() => null);
+    // Automatically recalculate statistics & award Verified Brand badge when verified
+    if (dbStatus === "verified") {
+      const { badgeRepository } = await import("@/server/repositories");
+      await badgeRepository.awardBadgeBySlug(session.user.id, "verified-brand").catch(() => null);
+      if (brand.owner_id && brand.owner_id !== session.user.id) {
+        await badgeRepository.awardBadgeBySlug(brand.owner_id, "verified-brand").catch(() => null);
+      }
+    }
+
+    const { userStatsEngine } = await import("@/server/services/user-stats-engine.service");
+    await userStatsEngine.getUserStatistics(session.user.id).catch(() => null);
 
     const { activityEngine } = await import("@/server/services/activity-engine.service");
     await activityEngine.recordActivity(session.user.id, "brand_verified", "brand", brand.id, { status: dbStatus }).catch(() => null);

@@ -1,33 +1,17 @@
 import { NextRequest } from "next/server";
 import { authService } from "@/server/services";
-import { badgeRepository } from "@/server/repositories";
+import { userRepository, badgeRepository } from "@/server/repositories";
+import { userStatsEngine } from "@/server/services/user-stats-engine.service";
+import { earlyAccessBadgeService } from "@/server/services/early-access-badge.service";
 import { apiSuccess, apiError } from "@/lib/utils/api-response";
 
 export const dynamic = "force-dynamic";
 
-export const BADGE_REWARDS: Record<string, { xp: number }> = {
-  "early-adopter": { xp: 250 },
-  "top-contributor": { xp: 1000 },
-  "verified-brand": { xp: 500 },
-  "100-templates": { xp: 500 },
-  "500-templates": { xp: 1500 },
-  "1000-templates": { xp: 3000 },
-  "100-memes": { xp: 300 },
-  "1000-memes": { xp: 1200 },
-  "10k-memes": { xp: 5000 },
-  "community-favorite": { xp: 1000 },
-  "ai-approved": { xp: 400 },
-  "trend-setter": { xp: 1500 },
-  "hall-of-fame": { xp: 10000 },
-};
-
-function calculateLevel(totalXp: number) {
-  if (totalXp >= 10000) return { level: 6, title: "Hall of Fame Legend", minXp: 10000, maxXp: 20000 };
-  if (totalXp >= 5000) return { level: 5, title: "Elite Creator", minXp: 5000, maxXp: 10000 };
-  if (totalXp >= 2500) return { level: 4, title: "Master Creator", minXp: 2500, maxXp: 5000 };
-  if (totalXp >= 1000) return { level: 3, title: "Pro Creator", minXp: 1000, maxXp: 2500 };
-  if (totalXp >= 500) return { level: 2, title: "Rising Creator", minXp: 500, maxXp: 1000 };
-  return { level: 1, title: "Novice Creator", minXp: 0, maxXp: 500 };
+export interface BadgeProgressItem {
+  currentCount: number;
+  reqCount: number;
+  percentage: number;
+  formattedProgress: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -38,50 +22,86 @@ export async function GET(req: NextRequest) {
       return apiSuccess({
         authenticated: false,
         unlockedBadges: [],
+        badgeProgress: {},
         totalXp: 0,
-        levelInfo: calculateLevel(0),
+        levelInfo: { level: 1, title: "Novice Creator", minXp: 0, maxXp: 250 },
       });
     }
 
     const userId = session.user.id;
+    const dbUser = await userRepository.findById(userId);
 
-    // Ensure early-adopter badge exists & is awarded if user is active
-    try {
-      await badgeRepository.awardBadgeBySlug(userId, "early-adopter");
-    } catch (e) {
-      // Ignore if database seed not yet run
+    if (dbUser?.created_at) {
+      // Evaluate Early Access badge based strictly on server creation date vs Sept 30, 2026 cutoff
+      await earlyAccessBadgeService.evaluateAndAward(userId, dbUser.created_at).catch(() => null);
     }
 
+    // Use single source of truth UserStatsEngine statistics
+    const stats = await userStatsEngine.getUserStatistics(userId);
     const rawUserBadges = (await badgeRepository.findByUser(userId)) || [];
-    
-    // Collect unlocked badge slugs ONLY (1 slug per badge record)
+
     const unlockedSlugs: string[] = [];
     rawUserBadges.forEach((ub: any) => {
-      const slug = ub.badge?.slug || (typeof ub.badge_id === "string" && !ub.badge_id.startsWith("badge-") ? ub.badge_id : null);
+      const slug = ub.badge?.slug || ub.badge_id;
       if (slug) unlockedSlugs.push(slug);
     });
 
-    // If user has raw badges but slug join was null, fallback to early-adopter
-    if (unlockedSlugs.length === 0 && rawUserBadges.length > 0) {
-      unlockedSlugs.push("early-adopter");
-    }
-
-    // Deduplicate
-    const uniqueUnlockedSlugs = Array.from(new Set(unlockedSlugs));
-
-    // Calculate XP strictly from unique unlocked badges
-    let totalXp = 0;
-    uniqueUnlockedSlugs.forEach((slug) => {
-      totalXp += BADGE_REWARDS[slug]?.xp || 250;
+    // Also include dynamic unlocked achievements
+    stats.achievements.forEach((a) => {
+      if (a.unlocked) unlockedSlugs.push(a.slug);
     });
 
-    const levelInfo = calculateLevel(totalXp);
+    const uniqueUnlockedSlugs = Array.from(new Set(unlockedSlugs));
+
+    // Calculate Tamper-Proof Server-Side Progress Indicators for All 13 Badges
+    const approvedTemplates = stats.templates.approved;
+    const totalMemes = stats.memes.total;
+    const totalUpvotes = stats.templates.upvotes + stats.memes.upvotes;
+    const verifiedBrands = stats.brands.verified;
+    const isEarlyAdopterQualified = dbUser?.created_at ? earlyAccessBadgeService.isEligible(dbUser.created_at) : false;
+
+    const buildProgress = (current: number, req: number, formatText: string): BadgeProgressItem => {
+      const currentClamped = Math.max(0, current);
+      const pct = Math.min(100, Math.round((currentClamped / Math.max(1, req)) * 100));
+      return {
+        currentCount: currentClamped,
+        reqCount: req,
+        percentage: pct,
+        formattedProgress: formatText,
+      };
+    };
+
+    const badgeProgress: Record<string, BadgeProgressItem> = {
+      "early-adopter": buildProgress(
+        isEarlyAdopterQualified ? 1 : 0,
+        1,
+        isEarlyAdopterQualified ? "Qualified (Early Access Account)" : "Account Created After Cutoff"
+      ),
+      "top-contributor": buildProgress(stats.xp, 1000, `${stats.xp.toLocaleString()} / 1,000 XP`),
+      "verified-brand": buildProgress(verifiedBrands, 1, `${verifiedBrands} / 1 Verified Brand`),
+      "100-templates": buildProgress(approvedTemplates, 100, `${approvedTemplates} / 100 Templates`),
+      "500-templates": buildProgress(approvedTemplates, 500, `${approvedTemplates} / 500 Templates`),
+      "1000-templates": buildProgress(approvedTemplates, 1000, `${approvedTemplates.toLocaleString()} / 1,000 Templates`),
+      "100-memes": buildProgress(totalMemes, 100, `${totalMemes} / 100 Memes`),
+      "1000-memes": buildProgress(totalMemes, 1000, `${totalMemes.toLocaleString()} / 1,000 Memes`),
+      "10k-memes": buildProgress(totalMemes, 10000, `${totalMemes.toLocaleString()} / 10,000 Memes`),
+      "community-favorite": buildProgress(totalUpvotes, 10000, `${totalUpvotes.toLocaleString()} / 10,000 Upvotes`),
+      "ai-approved": buildProgress(approvedTemplates, 50, `${approvedTemplates} / 50 Submissions`),
+      "trend-setter": buildProgress(approvedTemplates > 0 ? 1 : 0, 1, approvedTemplates > 0 ? "1 / 1 Trending Hit" : "0 / 1 Trending Hit"),
+      "hall-of-fame": buildProgress(stats.templates.views, 1000000, `${stats.templates.views.toLocaleString()} / 1,000,000 Views`),
+    };
 
     return apiSuccess({
       authenticated: true,
       unlockedBadges: uniqueUnlockedSlugs,
-      totalXp,
-      levelInfo,
+      badgeProgress,
+      totalXp: stats.xp,
+      levelInfo: {
+        level: stats.level,
+        title: `Lvl ${stats.level} Creator`,
+        minXp: 0,
+        maxXp: stats.nextLevelXp,
+      },
     });
   } catch (error: any) {
     return apiError(error.message || "Failed to fetch achievements", 500);

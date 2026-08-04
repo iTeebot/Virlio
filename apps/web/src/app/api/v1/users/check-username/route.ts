@@ -60,6 +60,48 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
 
     const featuredBrand = stats.brands.items.find((b) => (b.verification_status || "").toLowerCase() === "verified") || stats.brands.items[0] || null;
 
+    // Single source of truth badges: Combine user_badges table rows with unlocked dynamic achievements
+    const badgesMap = new Map<string, any>();
+
+    // 1. Add all badges from user_badges table (Early Adopter, Special Badges, etc.)
+    for (const ub of stats.badges || []) {
+      const slug = ub.badge?.slug || ub.badge_id;
+      if (slug) {
+        badgesMap.set(slug, {
+          id: ub.id || ub.badge?.id || slug,
+          unlocked_at: ub.unlocked_at || new Date(),
+          badge: {
+            id: ub.badge?.id || ub.id || slug,
+            name: ub.badge?.name || slug,
+            slug,
+            description: ub.badge?.description || "",
+            category: ub.badge?.category || "Special",
+            icon_url: ub.badge?.icon_url || "/images/badges/badge_Early_adopter.png",
+          },
+        });
+      }
+    }
+
+    // 2. Add unlocked dynamic achievements
+    for (const a of stats.achievements || []) {
+      if (a.unlocked && !badgesMap.has(a.slug)) {
+        badgesMap.set(a.slug, {
+          id: a.id,
+          unlocked_at: new Date(),
+          badge: {
+            id: a.id,
+            name: a.name,
+            slug: a.slug,
+            description: a.description,
+            category: "Achievement",
+            icon_url: "/images/badges/badge_Early_adopter.png",
+          },
+        });
+      }
+    }
+
+    const publicBadges = Array.from(badgesMap.values());
+
     return apiSuccess({
       available: false,
       user: {
@@ -89,7 +131,7 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
           minXp: 0,
           maxXp: stats.nextLevelXp,
         },
-        badges: stats.achievements.filter((a) => a.unlocked),
+        badges: publicBadges,
         achievements: stats.achievements,
         brands_managed: stats.brands.items,
         featured_brand: featuredBrand,

@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ErrorPageLayout } from "@/components/errors/ErrorPageLayout";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Trophy,
   Award,
@@ -243,13 +244,12 @@ export default function LeaderboardsPage() {
                             </td>
                             <td className="px-6 py-4">
                               <Link href={u.username ? `/profiles/${u.username}` : "#"} className="flex items-center gap-3 group">
-                                <div className="relative w-9 h-9 rounded-full overflow-hidden bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                                  {u.image ? (
-                                    <Image src={u.image} alt={uName} fill unoptimized className="object-cover" />
-                                  ) : (
-                                    <User className="w-4 h-4 text-blue-600" />
-                                  )}
-                                </div>
+                                <UserAvatar
+                                  src={u.image}
+                                  name={uName}
+                                  username={u.username}
+                                  size="sm"
+                                />
                                 <div>
                                   <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{uName}</p>
                                   <p className="text-xs text-gray-500">{handle}</p>
@@ -259,7 +259,7 @@ export default function LeaderboardsPage() {
                             <td className="px-6 py-4">
                               <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded bg-purple-50 text-purple-700 border border-purple-200">
                                 <Award className="w-3.5 h-3.5" />
-                                {u.userBadges?.length || 0} Badges
+                                {(u as any).badges_count ?? (u as any).unlocked_badges_count ?? u.userBadges?.length ?? 0} Badges
                               </span>
                             </td>
                             <td className="px-6 py-4">

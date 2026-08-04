@@ -65,3 +65,10 @@ export async function awardBadgeBySlug(userId: string, badgeSlug: string) {
   return null;
 }
 
+export async function hasBadge(userId: string, badgeSlug: string): Promise<boolean> {
+  const userBadgesList = await findByUser(userId);
+  if (!Array.isArray(userBadgesList)) return false;
+  return userBadgesList.some((ub: any) => ub.badge?.slug === badgeSlug || ub.badge_id === badgeSlug);
+}
+
+

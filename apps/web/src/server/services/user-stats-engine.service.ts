@@ -101,6 +101,7 @@ export interface UnifiedUserStatistics {
   };
   xpBreakdown: XPBreakdownItem[];
   achievements: DynamicAchievement[];
+  badges: any[];
   activities: any[];
   contributionCalendar: Record<string, ContributionDay>;
   activeDays: number;
@@ -474,6 +475,7 @@ export class UserStatsEngine {
       },
       xpBreakdown,
       achievements,
+      badges: userBadgesList || [],
       activities: activityStats.timeline || [],
       contributionCalendar: activityStats.contributionCalendar,
       activeDays: activityStats.activeDays,

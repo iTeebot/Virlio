@@ -3,6 +3,16 @@ import { getCurrentUser } from "@/server/services/auth.service";
 import { uploadBufferToCloudinary } from "@/lib/cloudinary/upload";
 import { cloudinary } from "@/lib/cloudinary/client";
 
+// Internal server-only mapping of abstract asset types to secure storage folders
+function resolveServerFolder(rawAssetType?: string, rawFolder?: string): string {
+  if (rawAssetType === "avatar") return "virlio/user-avatars";
+  if (rawAssetType === "brand") return "virlio/brand-logos";
+  if (rawAssetType === "template") return "virlio/template-assets";
+  if (rawAssetType === "verification") return "virlio/verification-proofs";
+  if (rawFolder && rawFolder.startsWith("virlio/")) return rawFolder;
+  return "virlio/uploads";
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -15,7 +25,8 @@ export async function POST(request: Request) {
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const file = formData.get("file") as File | null;
-      const folder = (formData.get("folder") as string) || "virlio/brand-assets";
+      const assetType = (formData.get("assetType") as string) || "";
+      const folder = resolveServerFolder(assetType, formData.get("folder") as string);
 
       if (!file) {
         return NextResponse.json({ message: "No file provided" }, { status: 400 });
@@ -40,20 +51,19 @@ export async function POST(request: Request) {
 
       const result = await uploadBufferToCloudinary(buffer, folder);
 
+      // Return ONLY the public URL — never expose internal storage public_id or provider details to client
       return NextResponse.json({
         url: result.secure_url,
-        public_id: result.public_id,
-        format: result.format,
-        width: result.width,
-        height: result.height,
       });
     } else if (contentType.includes("application/json")) {
       const body = await request.json();
-      const { url, folder = "virlio/brand-assets" } = body;
+      const { url, assetType, folder: rawFolder } = body;
 
       if (!url || typeof url !== "string" || !url.trim()) {
         return NextResponse.json({ message: "Valid image URL is required" }, { status: 400 });
       }
+
+      const folder = resolveServerFolder(assetType, rawFolder);
 
       // Upload URL to Cloudinary
       const result = await cloudinary.uploader.upload(url.trim(), {
@@ -63,16 +73,12 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         url: result.secure_url,
-        public_id: result.public_id,
-        format: result.format,
-        width: result.width,
-        height: result.height,
       });
     }
 
     return NextResponse.json({ message: "Unsupported Content-Type" }, { status: 400 });
   } catch (error: any) {
-    console.error("Upload API error:", error);
-    return NextResponse.json({ message: error.message || "Failed to upload image to Cloudinary" }, { status: 500 });
+    console.error("[Upload Service Exception]", error);
+    return NextResponse.json({ message: "Failed to upload image. Please try again." }, { status: 500 });
   }
 }

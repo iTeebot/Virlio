@@ -6,8 +6,10 @@ import { useSession, signIn } from "next-auth/react";
 import { toast } from "@/components/ui/toast";
 import { ProfileScoreResult } from "@/lib/services/profile-score.service";
 import { EmailOTPVerificationWidget } from "@/components/brands/email-otp-verification-widget";
-import { SharedImageUploader } from "@/components/brands/shared-image-uploader";
+import { AvatarDPUploader } from "@/components/ui/avatar-dp-uploader";
 import { DeleteAccountModal } from "@/components/settings/delete-account-modal";
+import { getCachedSettings, setCachedSettings, updateCachedProfile } from "@/lib/cache/settings-cache";
+import { useUserStore } from "@/providers/user-store-provider";
 import {
   User,
   ShieldCheck,
@@ -116,7 +118,8 @@ const PROVIDERS: ProviderConfig[] = [
 ];
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
+  const { updateUserStore } = useUserStore();
   const [profileScore, setProfileScore] = useState<ProfileScoreResult | null>(null);
   const [connectedAccounts, setConnectedAccounts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,36 +144,48 @@ export default function SettingsPage() {
     toast.success("Profile picture uploaded! Click 'Save Profile Changes' to save.", "Avatar Uploaded");
   };
 
-  // Fetch Accounts & Profile Score
-  const loadSettingsData = async () => {
+  // Centralized Settings Data Loader with SWR In-Memory Caching
+  const loadSettingsData = async (isBackgroundRevalidation = false) => {
     try {
-      setLoading(true);
-      const res = await fetch("/api/v1/users/settings/connected-accounts");
+      if (!isBackgroundRevalidation && !getCachedSettings()) {
+        setLoading(true);
+      }
+
+      const res = await fetch("/api/v1/users/settings/all");
       if (res.ok) {
         const json = await res.json();
         const data = json.data || json;
+
+        if (data.user) {
+          const u = data.user;
+          setName(u.name || "");
+          setUsername(u.username || "");
+          setBio(u.bio || "");
+          setCountry(u.country || "");
+          setWebsite(u.website || "");
+          if (u.image || u.avatar_url) setAvatarUrl(u.image || u.avatar_url);
+
+          const isVerified = Boolean(
+            u.emailVerified ||
+            u.email_verified ||
+            u.account_status === "active" ||
+            (session?.user as any)?.emailVerified
+          );
+          setIsEmailVerified(isVerified);
+        }
+
         if (data.profileScore) {
           setProfileScore(data.profileScore);
           setConnectedAccounts(data.profileScore.connectedProviders || []);
         }
-      }
 
-      // Fetch user profile info
-      if (session?.user?.username) {
-        const uRes = await fetch(`/api/v1/users/check-username?username=${encodeURIComponent(session.user.username)}`);
-        const uJson = await uRes.json();
-        if (uJson.success && uJson.data?.user) {
-          const u = uJson.data.user;
-          if (u.name) setName(u.name);
-          if (u.username) setUsername(u.username);
-          if (u.bio) setBio(u.bio);
-          if (u.country) setCountry(u.country);
-          if (u.website) setWebsite(u.website);
-          if (u.image || u.avatar_url) setAvatarUrl(u.image || u.avatar_url);
-        }
+        // Cache response data for instantaneous repeat renders
+        setCachedSettings(data);
       }
     } catch (err) {
-      toast.error("Failed to load settings data", "Network Error");
+      if (!getCachedSettings()) {
+        toast.error("Failed to load settings data", "Network Error");
+      }
     } finally {
       setLoading(false);
     }
@@ -178,14 +193,31 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      loadSettingsData();
-      if (session?.user) {
-        setName((prev) => prev || session.user.name || "");
-        setUsername((prev) => prev || session.user.username || "");
-        setAvatarUrl((prev) => prev || session.user.image || "");
+      const cached = getCachedSettings();
+      if (cached) {
+        // Immediate 0ms cache populate — zero skeleton flash!
+        const u = cached.user;
+        setName(u.name || "");
+        setUsername(u.username || "");
+        setBio(u.bio || "");
+        setCountry(u.country || "");
+        setWebsite(u.website || "");
+        if (u.image || u.avatar_url) setAvatarUrl(u.image || u.avatar_url);
+        setIsEmailVerified(Boolean(u.emailVerified));
+
+        if (cached.profileScore) {
+          setProfileScore(cached.profileScore);
+          setConnectedAccounts(cached.profileScore.connectedProviders || []);
+        }
+        setLoading(false);
+
+        // Silent background revalidation
+        loadSettingsData(true);
+      } else {
+        loadSettingsData(false);
       }
     }
-  }, [status, session]);
+  }, [status]);
 
   // Connect OAuth Provider
   const handleConnectProvider = (providerId: string) => {
@@ -229,8 +261,18 @@ export default function SettingsPage() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingProfile(true);
+    const previousAvatar = avatarUrl;
 
     try {
+      // Append cache-busting timestamp if image exists
+      const timestamp = Date.now();
+      const versionedAvatar = avatarUrl ? avatarUrl.replace(/(\?v=\d+)?(#.*)?$/, `$2?v=${timestamp}`) : "";
+
+      // Optimistic Event Broadcast
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("virlio:avatar-updated", { detail: { avatarUrl: versionedAvatar || avatarUrl } }));
+      }
+
       const res = await fetch("/api/v1/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -240,11 +282,53 @@ export default function SettingsPage() {
       const json = await res.json();
       if (res.ok && json.success) {
         toast.success("Profile photo and information saved successfully!", "Profile Updated");
-        loadSettingsData();
+        
+        // Update global UserStore context in place
+        if (typeof updateUserStore === "function") {
+          updateUserStore({
+            name,
+            username,
+            bio,
+            country,
+            website,
+            image: avatarUrl,
+            avatar_url: avatarUrl,
+          });
+        }
+
+        // Update in-memory settings cache in place
+        updateCachedProfile({
+          name,
+          username,
+          bio,
+          country,
+          website,
+          image: avatarUrl,
+          avatar_url: avatarUrl,
+        });
+
+        // Update NextAuth Session state in memory
+        if (typeof update === "function") {
+          await update({
+            user: {
+              name,
+              username,
+              image: avatarUrl,
+            },
+          }).catch(() => null);
+        }
       } else {
+        // Rollback on failure
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("virlio:avatar-updated", { detail: { avatarUrl: previousAvatar } }));
+        }
         toast.error(json.error || "Failed to update profile", "Error");
       }
     } catch (err) {
+      // Rollback on network failure
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("virlio:avatar-updated", { detail: { avatarUrl: previousAvatar } }));
+      }
       toast.error("Failed to save profile changes.", "Network Error");
     } finally {
       setIsSavingProfile(false);
@@ -455,18 +539,18 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSaveProfile} className="space-y-4 max-w-2xl">
+        <form onSubmit={handleSaveProfile} className="w-full space-y-4">
           {/* Avatar / Display Picture Uploader */}
           <div>
             <label className="block text-xs font-bold text-gray-900 mb-2">
               Profile Display Picture (DP / Avatar)
             </label>
-            <SharedImageUploader
-              label="Profile Photo / Avatar DP"
-              value={avatarUrl}
+            <AvatarDPUploader
+              avatarUrl={avatarUrl}
               onChange={(url) => setAvatarUrl(url)}
+              name={name}
+              username={username}
               folder="virlio/user-avatars"
-              description="Upload a custom profile photo or avatar picture to display across Virlio."
             />
           </div>
 

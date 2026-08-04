@@ -7,6 +7,13 @@ export interface AuthErrorMessage {
 }
 
 const AUTH_ERROR_MAP: Record<string, AuthErrorMessage> = {
+  CredentialsSignin: {
+    code: "CredentialsSignin",
+    title: "Invalid Credentials",
+    description: "Invalid email address or password. Please check your credentials and try again.",
+    actionText: "Try Again",
+    actionHref: "/login",
+  },
   OAuthAccountNotLinked: {
     code: "OAuthAccountNotLinked",
     title: "Sign-In Method Mismatch",

@@ -90,6 +90,13 @@ export async function findPublicProfiles(options: { limit?: number; offset?: num
     rawProfiles.map(async (u) => {
       try {
         const stats = await userStatsEngine.getUserStatistics(u.id);
+        const unlockedAchievementsCount = (stats.achievements || []).filter((a: any) => a.unlocked).length;
+        const totalBadgesCount = Math.max(
+          (stats.badges || []).length,
+          unlockedAchievementsCount,
+          (u.userBadges || []).length
+        );
+
         return {
           ...u,
           trust_score: stats.trustScore,
@@ -97,9 +104,15 @@ export async function findPublicProfiles(options: { limit?: number; offset?: num
           current_streak: stats.currentStreak,
           longest_streak: stats.longestStreak,
           level: stats.level,
+          badges_count: totalBadgesCount,
+          unlocked_badges_count: totalBadgesCount,
         };
       } catch {
-        return u;
+        return {
+          ...u,
+          badges_count: (u.userBadges || []).length,
+          unlocked_badges_count: (u.userBadges || []).length,
+        };
       }
     })
   );

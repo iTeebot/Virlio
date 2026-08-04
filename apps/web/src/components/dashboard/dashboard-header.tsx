@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { BrandSwitcher } from "./brand-switcher";
 import { DashboardBreadcrumbs } from "./dashboard-breadcrumbs";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { HeaderUserDropdown } from "@/components/layout/header-user-dropdown";
 import { Menu } from "lucide-react";
 
 interface DashboardHeaderProps {
@@ -48,14 +50,8 @@ export function DashboardHeader({ onMobileMenuToggle, user }: DashboardHeaderPro
         {/* Brand Switcher in top right */}
         <BrandSwitcher />
 
-        {/* User Avatar */}
-        <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-700 overflow-hidden shrink-0">
-          {user?.image ? (
-            <img src={user.image} alt={user.name || "User"} className="w-full h-full object-cover" />
-          ) : (
-            user?.name?.slice(0, 2).toUpperCase() || "U"
-          )}
-        </div>
+        {/* Centralized Synced User Avatar Dropdown */}
+        <HeaderUserDropdown />
       </div>
     </header>
   );

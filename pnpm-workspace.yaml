@@ -4,7 +4,9 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
+  "@img/sharp-linux-x64": true
   unrs-resolver: true
 onlyBuiltDependencies:
   - sharp
+  - "@img/sharp-linux-x64"
   - unrs-resolver

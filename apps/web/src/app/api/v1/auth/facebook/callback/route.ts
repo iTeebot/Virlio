@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const redirectUri = `${appUrl}/api/v1/auth/facebook/callback`;
+    const origin = new URL(req.url).origin;
+    const redirectUri = `${origin}/api/v1/auth/facebook/callback`;
 
     // Handle OAuth callback and retrieve managed pages
     const { pages } = await facebookOAuthService.handleCallback(code || "mock_code", redirectUri);
@@ -32,13 +32,13 @@ export async function GET(req: NextRequest) {
 
     // Redirect to Brand Social Connections page with facebook_select modal flag
     const targetUrl = brandId
-      ? `${appUrl}/dashboard/brands/${brandId}/socials?facebook_select=1`
-      : `${appUrl}/dashboard/brands`;
+      ? `${origin}/dashboard/brands/${brandId}/socials?facebook_select=1`
+      : `${origin}/dashboard/brands`;
 
     return NextResponse.redirect(targetUrl);
   } catch (error: any) {
     console.error("[Meta OAuth Callback Error]:", error);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    return NextResponse.redirect(`${appUrl}/dashboard/brands?oauth_error=1`);
+    const origin = new URL(req.url).origin;
+    return NextResponse.redirect(`${origin}/dashboard/brands?oauth_error=1`);
   }
 }

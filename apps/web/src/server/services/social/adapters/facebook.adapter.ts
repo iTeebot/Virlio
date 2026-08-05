@@ -33,8 +33,10 @@ export class FacebookAdapter implements BaseSocialAdapter {
         finalCaption += `\n\nGenerated with Virlio\nhttps://virlio.iteebot.com`;
       }
 
-      // If live Graph API call is configured
-      if (process.env.NODE_ENV === "production" && imageUrl) {
+      const isMockToken = accessToken.startsWith("EAAB_mock_") || accessToken.startsWith("mock_");
+
+      // Execute live Graph API call if token is real and image URL exists
+      if (!isMockToken && imageUrl) {
         const res = await fetch(`https://graph.facebook.com/v18.0/${pageId}/photos`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -47,6 +49,7 @@ export class FacebookAdapter implements BaseSocialAdapter {
 
         const data = await res.json();
         if (data.error) {
+          console.error("[Facebook Graph API Publishing Error]:", data.error);
           return { success: false, error: data.error.message || "Facebook Graph API Error" };
         }
 
@@ -58,7 +61,7 @@ export class FacebookAdapter implements BaseSocialAdapter {
         };
       }
 
-      // Deterministic fallback for dev/demo mode
+      // Deterministic fallback for dev/demo mode with mock tokens
       const mockPostId = `${pageId}_fb_${Date.now()}`;
       return {
         success: true,

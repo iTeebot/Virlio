@@ -99,7 +99,7 @@ export class FacebookOAuthService {
       const userAccessToken = longLivedData.access_token || shortLivedToken;
 
       // 3. Retrieve managed Facebook Pages via Graph API
-      const accountsUrl = `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,picture{url},category,followers_count,is_verified,access_token,perms&access_token=${userAccessToken}`;
+      const accountsUrl = `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,picture{url},category,followers_count,is_verified,access_token,tasks&access_token=${userAccessToken}`;
       const accountsRes = await fetch(accountsUrl);
       const accountsData = await accountsRes.json();
 
@@ -115,39 +115,43 @@ export class FacebookOAuthService {
         followers_count: acc.followers_count || 1250,
         is_verified: acc.is_verified || false,
         access_token: acc.access_token,
-        perms: acc.perms || ["CREATE_CONTENT", "MANAGE", "MODERATE"],
+        perms: acc.tasks || ["CREATE_CONTENT", "MANAGE", "MODERATE"],
       }));
 
       return { pages, userAccessToken };
     } catch (err: any) {
-      console.warn("[Meta OAuth Fallback / Error]:", err.message);
+      console.error("[Meta OAuth Graph API Error]:", err.message || err);
 
-      // Fallback generator for development / sandbox testing if Meta App permissions are in development mode
-      return {
-        userAccessToken: `mock_user_token_${Date.now()}`,
-        pages: [
-          {
-            id: "10928374839201",
-            name: "Teebot Official Page",
-            picture: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
-            category: "Software & Technology",
-            followers_count: 14200,
-            is_verified: true,
-            access_token: `EAAB_mock_page_token_1_${Date.now()}`,
-            perms: ["CREATE_CONTENT", "MANAGE", "MANAGE_POSTS"],
-          },
-          {
-            id: "20839485749302",
-            name: "Teezyon Brand Hub",
-            picture: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-            category: "E-Commerce & Retail",
-            followers_count: 8900,
-            is_verified: false,
-            access_token: `EAAB_mock_page_token_2_${Date.now()}`,
-            perms: ["CREATE_CONTENT", "MANAGE"],
-          },
-        ],
-      };
+      // Fallback generator only for testing when code is mock_code
+      if (code === "mock_code") {
+        return {
+          userAccessToken: `mock_user_token_${Date.now()}`,
+          pages: [
+            {
+              id: "10928374839201",
+              name: "Teebot Official Page",
+              picture: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
+              category: "Software & Technology",
+              followers_count: 14200,
+              is_verified: true,
+              access_token: `EAAB_mock_page_token_1_${Date.now()}`,
+              perms: ["CREATE_CONTENT", "MANAGE", "MANAGE_POSTS"],
+            },
+            {
+              id: "20839485749302",
+              name: "Teezyon Brand Hub",
+              picture: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+              category: "E-Commerce & Retail",
+              followers_count: 8900,
+              is_verified: false,
+              access_token: `EAAB_mock_page_token_2_${Date.now()}`,
+              perms: ["CREATE_CONTENT", "MANAGE"],
+            },
+          ],
+        };
+      }
+
+      throw err;
     }
   }
 }

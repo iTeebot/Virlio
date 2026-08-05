@@ -17,8 +17,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing brandId parameter" }, { status: 400 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const redirectUri = `${appUrl}/api/v1/auth/facebook/callback`;
+    const origin = new URL(req.url).origin;
+    const redirectUri = `${origin}/api/v1/auth/facebook/callback`;
     const authUrl = facebookOAuthService.getAuthorizationUrl(brandId, redirectUri);
 
     return NextResponse.redirect(authUrl);

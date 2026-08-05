@@ -1,7 +1,16 @@
-import sharp from "sharp";
 import fs from "fs";
 import path from "path";
 import { uploadImage } from "../storage.service";
+
+async function getSharp() {
+  try {
+    const mod = await import("sharp");
+    return mod.default || mod;
+  } catch (err: any) {
+    console.error("[Meme Renderer] Failed to load Sharp native module:", err);
+    throw new Error("Image rendering engine (Sharp) is unavailable on this environment.");
+  }
+}
 
 /**
  * Escapes special HTML/XML characters to prevent SVG parsing errors.
@@ -70,6 +79,7 @@ export async function renderMemeImage(options: RenderMemeOptions): Promise<Buffe
   const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
 
   // 2. Load Sharp instance & metadata
+  const sharp = await getSharp();
   const image = sharp(imageBuffer);
   const metadata = await image.metadata();
   const width = metadata.width || 600;

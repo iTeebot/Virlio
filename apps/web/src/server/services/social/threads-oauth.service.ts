@@ -24,7 +24,7 @@ export class ThreadsOAuthService {
    */
   getAuthorizationUrl(brandId: string, redirectUri: string): string {
     const state = Buffer.from(JSON.stringify({ brandId, ts: Date.now() })).toString("base64url");
-    const scopes = ["threads_basic", "threads_content_publish"].join(",");
+    const scopes = ["threads_basic", "threads_content_publish", "threads_profile_discovery"].join(",");
 
     const params = new URLSearchParams({
       client_id: this.appId,
@@ -238,7 +238,7 @@ export class ThreadsOAuthService {
         access_token: encryptedToken,
         connected_by: userId || null,
         is_active: true,
-        scopes: ["threads_basic", "threads_content_publish"],
+        scopes: ["threads_basic", "threads_content_publish", "threads_profile_discovery"],
       })
       .onConflictDoUpdate({
         target: [brandSocialConnections.brand_id, brandSocialConnections.platform, brandSocialConnections.page_id],

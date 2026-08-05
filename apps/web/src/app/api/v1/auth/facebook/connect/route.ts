@@ -4,6 +4,21 @@ import { facebookOAuthService } from "@/server/services/social/facebook-oauth.se
 
 export const dynamic = "force-dynamic";
 
+function getRequestOrigin(req: NextRequest): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  }
+
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
+
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
+  return new URL(req.url).origin;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await authService.getCurrentSession();
@@ -17,7 +32,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing brandId parameter" }, { status: 400 });
     }
 
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
     const redirectUri = `${origin}/api/v1/auth/facebook/callback`;
     const authUrl = facebookOAuthService.getAuthorizationUrl(brandId, redirectUri);
 

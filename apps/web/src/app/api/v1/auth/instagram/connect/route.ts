@@ -3,6 +3,21 @@ import { authService } from "@/server/services";
 
 export const dynamic = "force-dynamic";
 
+function getRequestOrigin(req: NextRequest): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  }
+
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
+
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
+  return new URL(req.url).origin;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await authService.getCurrentSession();
@@ -16,10 +31,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing brandId parameter" }, { status: 400 });
     }
 
-    // Strictly use the Instagram App ID for Virlio-IG (1804628770539559)
     const igAppId = process.env.AUTH_INSTAGRAM_ID || "1804628770539559";
-
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
     const redirectUri = `${origin}/api/v1/auth/instagram/callback`;
     const state = Buffer.from(JSON.stringify({ brandId, ts: Date.now() })).toString("base64url");
 
@@ -34,7 +47,6 @@ export async function GET(req: NextRequest) {
       state,
     });
 
-    // Official Instagram OAuth authorize endpoint
     const authUrl = `https://www.instagram.com/oauth/authorize?${params.toString()}`;
 
     return NextResponse.redirect(authUrl);

@@ -6,8 +6,23 @@ import { authService } from "@/server/services";
 
 export const dynamic = "force-dynamic";
 
+function getRequestOrigin(req: NextRequest): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  }
+
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
+
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
+  return new URL(req.url).origin;
+}
+
 export async function GET(req: NextRequest) {
-  const origin = new URL(req.url).origin;
+  const origin = getRequestOrigin(req);
 
   try {
     const session = await authService.getCurrentSession();
@@ -38,7 +53,6 @@ export async function GET(req: NextRequest) {
 
     if (code && code !== "mock_code") {
       try {
-        // Exchange code for short-lived Instagram user token
         const formData = new URLSearchParams();
         formData.append("client_id", appId);
         formData.append("client_secret", appSecret);
@@ -57,7 +71,6 @@ export async function GET(req: NextRequest) {
           const userToken = tokenData.access_token;
           const userId = tokenData.user_id;
 
-          // Query Instagram User Profile
           const profileRes = await fetch(
             `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${userToken}`
           );
@@ -91,7 +104,7 @@ export async function GET(req: NextRequest) {
           access_token: encryptedToken,
           connected_by: session?.user?.id || null,
           is_active: true,
-          scopes: ["user_profile", "user_media", "instagram_business_content_publish"],
+          scopes: ["instagram_business_basic", "instagram_business_content_publish"],
         })
         .onConflictDoUpdate({
           target: [brandSocialConnections.brand_id, brandSocialConnections.platform, brandSocialConnections.page_id],

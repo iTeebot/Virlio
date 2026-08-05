@@ -4,7 +4,24 @@ import { discoveredPagesStore } from "@/server/services/social/discovered-pages.
 
 export const dynamic = "force-dynamic";
 
+function getRequestOrigin(req: NextRequest): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  }
+
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
+
+  if (host) {
+    return `${proto}://${host}`;
+  }
+
+  return new URL(req.url).origin;
+}
+
 export async function GET(req: NextRequest) {
+  const origin = getRequestOrigin(req);
+
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get("code");
@@ -20,7 +37,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const origin = new URL(req.url).origin;
     const redirectUri = `${origin}/api/v1/auth/facebook/callback`;
 
     // Handle OAuth callback and retrieve managed pages
@@ -38,7 +54,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(targetUrl);
   } catch (error: any) {
     console.error("[Meta OAuth Callback Error]:", error);
-    const origin = new URL(req.url).origin;
     return NextResponse.redirect(`${origin}/dashboard/brands?oauth_error=1`);
   }
 }

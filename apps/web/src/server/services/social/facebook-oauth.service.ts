@@ -60,6 +60,8 @@ export class FacebookOAuthService {
       "pages_manage_posts",
       "pages_read_engagement",
       "business_management",
+      "instagram_basic",
+      "instagram_content_publish",
       "public_profile",
     ].join(",");
 

@@ -15,6 +15,7 @@ import {
   Sparkles,
   Share2,
   CheckCircle2,
+  Camera,
 } from "lucide-react";
 
 interface MemeItem {
@@ -95,6 +96,35 @@ export default function BrandMemesPage() {
       }
     } catch {
       toast.error("Network error publishing to Facebook", "Error");
+    } finally {
+      setPublishingMemeId(null);
+    }
+  };
+
+  const handlePostToCamera = async (memeId: string) => {
+    if (!currentBrand?.id) return;
+    setPublishingMemeId(memeId);
+
+    try {
+      const res = await fetch(`/api/v1/brands/${currentBrand.id}/socials/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memeId,
+          platform: "instagram",
+          appendAttribution: true,
+        }),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        toast.success(`Published meme to Camera (${json.data.pageName})!`, "Social Publisher");
+        await fetchMemes();
+      } else {
+        toast.error(json.error || "Failed to publish to Camera", "Duplicate Prevention");
+      }
+    } catch {
+      toast.error("Network error publishing to Camera", "Error");
     } finally {
       setPublishingMemeId(null);
     }
@@ -265,39 +295,77 @@ export default function BrandMemesPage() {
 
                     {/* Social Publishing & Manage Actions */}
                     <div className="pt-3 border-t border-gray-100 space-y-2">
-                      {(() => {
-                        const historyItem = pubHistory.find((h) => h.meme_id === meme.id && h.platform === "facebook");
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {/* Facebook Publishing Action */}
+                        {(() => {
+                          const fbHistory = pubHistory.find((h) => h.meme_id === meme.id && h.platform === "facebook");
 
-                        if (historyItem) {
+                          if (fbHistory) {
+                            return (
+                              <div className="p-2 bg-blue-50 border border-blue-100 rounded-xl text-center space-y-0.5">
+                                <span className="text-[10px] font-black text-blue-900 flex items-center justify-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                                  Posted to FB ({fbHistory.page_name || "Page"})
+                                </span>
+                                <span className="text-[9px] text-blue-700 block">
+                                  {new Date(fbHistory.published_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            );
+                          }
+
                           return (
-                            <div className="p-2.5 bg-blue-50 border border-blue-100 rounded-xl text-center space-y-0.5">
-                              <span className="text-[10px] font-black text-blue-900 flex items-center justify-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                                Already Posted to {historyItem.page_name || "Facebook"}
-                              </span>
-                              <span className="text-[9px] text-blue-700 block">
-                                Posted on {new Date(historyItem.published_at).toLocaleDateString()}
-                              </span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handlePostToFacebook(meme.id)}
+                              disabled={publishingMemeId === meme.id}
+                              className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                            >
+                              {publishingMemeId === meme.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Share2 className="w-3.5 h-3.5" />
+                              )}
+                              <span>Post to Facebook</span>
+                            </button>
                           );
-                        }
+                        })()}
 
-                        return (
-                          <button
-                            type="button"
-                            onClick={() => handlePostToFacebook(meme.id)}
-                            disabled={publishingMemeId === meme.id}
-                            className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
-                          >
-                            {publishingMemeId === meme.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Share2 className="w-3.5 h-3.5" />
-                            )}
-                            <span>Post to Facebook</span>
-                          </button>
-                        );
-                      })()}
+                        {/* Instagram Publishing Action */}
+                        {(() => {
+                          const igHistory = pubHistory.find((h) => h.meme_id === meme.id && h.platform === "instagram");
+
+                          if (igHistory) {
+                            return (
+                              <div className="p-2 bg-pink-50 border border-pink-100 rounded-xl text-center space-y-0.5">
+                                <span className="text-[10px] font-black text-pink-900 flex items-center justify-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-pink-600" />
+                                  Posted to IG ({igHistory.page_name || "Account"})
+                                </span>
+                                <span className="text-[9px] text-pink-700 block">
+                                  {new Date(igHistory.published_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => handlePostToCamera(meme.id)}
+                              disabled={publishingMemeId === meme.id}
+                              className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-pink-600 hover:bg-pink-700 disabled:opacity-50 text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                            >
+                              {publishingMemeId === meme.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Camera className="w-3.5 h-3.5" />
+                              )}
+                              <span>Post to Instagram</span>
+                            </button>
+                          );
+                        })()}
+                      </div>
 
                       <div className="flex items-center gap-2 pt-1">
                         <button

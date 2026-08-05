@@ -38,6 +38,7 @@ import {
   CheckCircle2,
   Loader2,
   Share2,
+  Camera,
   Globe,
   Settings,
   X,
@@ -126,6 +127,46 @@ function FacebookNodeComponent({ data, selected }: any) {
   );
 }
 
+function CameraNodeComponent({ data, selected }: any) {
+  return (
+    <div
+      className={`w-64 bg-white border-2 rounded-2xl shadow-md overflow-hidden select-none transition-all ${
+        selected ? "border-pink-600 ring-4 ring-pink-500/20" : "border-gray-200"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-3.5 !h-3.5 !bg-pink-600 !border-2 !border-white"
+      />
+
+      <div className="p-3 bg-pink-600 text-white flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Camera className="w-4 h-4" />
+          <span className="text-xs font-black uppercase tracking-wider">Social Action</span>
+        </div>
+        <span className="px-2 py-0.5 bg-emerald-500 text-[9px] font-extrabold rounded uppercase">Implemented</span>
+      </div>
+
+      <div className="p-3.5 space-y-2">
+        <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+          <Camera className="w-4 h-4 text-pink-600" /> Post to Instagram
+        </h4>
+        <div className="text-[10px] text-gray-500 space-y-1 bg-gray-50 p-2 rounded-xl border border-gray-100 font-mono">
+          <div>Caption: {data.captionType || "Meme Description"}</div>
+          <div>Tags: {data.tagsType || "Meme Tags"}</div>
+        </div>
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-3.5 !h-3.5 !bg-pink-600 !border-2 !border-white"
+      />
+    </div>
+  );
+}
+
 function ArticleNodeComponent({ data, selected }: any) {
   return (
     <div
@@ -200,7 +241,7 @@ const ALL_ACTION_NODES = [
   { id: "facebook", label: "Post to Facebook", implemented: true, category: "Social" },
   { id: "x", label: "Post to X (Twitter)", implemented: false, category: "Social" },
   { id: "linkedin", label: "Post to LinkedIn", implemented: false, category: "Social" },
-  { id: "instagram", label: "Post to Instagram", implemented: false, category: "Social" },
+  { id: "instagram", label: "Post to Instagram", implemented: true, category: "Social" },
   { id: "reddit", label: "Post to Reddit", implemented: false, category: "Social" },
   { id: "pinterest", label: "Post to Pinterest", implemented: false, category: "Social" },
   { id: "youtube", label: "Post to YouTube", implemented: false, category: "Social" },
@@ -244,6 +285,7 @@ export default function AutomationEditorPage() {
     () => ({
       triggerNode: TriggerNodeComponent,
       facebookNode: FacebookNodeComponent,
+      instagramNode: CameraNodeComponent,
       articleNode: ArticleNodeComponent,
       lockedNode: LockedActionNodeComponent,
     }),
@@ -262,7 +304,7 @@ export default function AutomationEditorPage() {
         setLoading(true);
         const [autoRes, socialRes] = await Promise.all([
           fetch(`/api/v1/brands/${brandId}/automations/${automationId}`),
-          fetch(`/api/v1/brands/${brandId}/socials?platform=facebook`),
+          fetch(`/api/v1/brands/${brandId}/socials`),
         ]);
 
         if (autoRes.ok) {
@@ -348,6 +390,19 @@ export default function AutomationEditorPage() {
         position: { x: 450, y: 150 + nodes.length * 50 },
         data: {
           label: "Post to Facebook",
+          captionType: "use_meme_description",
+          tagsType: "use_meme_tags",
+          imageType: "generated_meme",
+          visibility: "public",
+        },
+      };
+    } else if (type === "instagramNode") {
+      newNode = {
+        id: newNodeId,
+        type: "instagramNode",
+        position: { x: 450, y: 150 + nodes.length * 50 },
+        data: {
+          label: "Post to Instagram",
           captionType: "use_meme_description",
           tagsType: "use_meme_tags",
           imageType: "generated_meme",
@@ -466,6 +521,18 @@ export default function AutomationEditorPage() {
                   <div className="flex items-center gap-2">
                     <Share2 className="w-4 h-4 text-blue-600" />
                     <span className="text-xs font-bold text-gray-900">Post to Facebook</span>
+                  </div>
+                  <Plus className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAddNodeToCanvas("instagramNode")}
+                  className="w-full p-3 bg-white border border-gray-200 hover:border-pink-500 rounded-2xl flex items-center justify-between text-left transition-colors cursor-pointer shadow-2xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-pink-600" />
+                    <span className="text-xs font-bold text-gray-900">Post to Instagram</span>
                   </div>
                   <Plus className="w-3.5 h-3.5 text-gray-400" />
                 </button>
@@ -636,6 +703,86 @@ export default function AutomationEditorPage() {
                     </label>
                     <p className="text-[10px] text-gray-400 pl-5">
                       Adds &ldquo;Generated with Virlio https://virlio.iteebot.com&rdquo;
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === "instagramNode" && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-pink-50 border border-pink-100 rounded-2xl flex items-center gap-2">
+                    <Camera className="w-5 h-5 text-pink-600" />
+                    <div>
+                      <span className="text-xs font-bold text-pink-900 block">Instagram Business Publishing</span>
+                      <span className="text-[10px] text-pink-700 block">Status: Centralized Account Shared</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Target Instagram Business Account</label>
+                    {connectedPages.filter((p) => p.platform === "instagram").length > 0 ? (
+                      <select
+                        value={
+                          selectedNode.data?.pageId ||
+                          connectedPages.find((p) => p.platform === "instagram")?.page_id
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const selectedAcc = connectedPages.find((p) => p.page_id === val);
+                          setNodes((nds) =>
+                            nds.map((n) =>
+                              n.id === selectedNode.id
+                                ? { ...n, data: { ...n.data, pageId: val, pageName: selectedAcc?.page_name } }
+                                : n
+                            )
+                          );
+                        }}
+                        className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-xl text-gray-900 font-bold"
+                      >
+                        {connectedPages
+                          .filter((p) => p.platform === "instagram")
+                          .map((p) => (
+                            <option key={p.id} value={p.page_id}>
+                              {p.page_name} (ID: {p.page_id})
+                            </option>
+                          ))}
+                      </select>
+                    ) : (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-center">
+                        <p className="text-xs font-bold text-amber-900">No Camera Business account connected.</p>
+                        <Link
+                          href={`/dashboard/brands/${brandId}/socials`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Connect Instagram</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Caption Content</label>
+                    <select className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-xl text-gray-900 font-bold">
+                      <option>Use AI Description + Hashtags (Default)</option>
+                      <option>Use AI Title + Description + Hashtags</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Image Asset</label>
+                    <select className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-xl text-gray-900 font-bold">
+                      <option>Generated Branded Meme</option>
+                    </select>
+                  </div>
+
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" defaultChecked className="rounded text-pink-600" />
+                      <span className="text-xs font-bold text-gray-800">Append Virlio Attribution</span>
+                    </label>
+                    <p className="text-[10px] text-gray-400 pl-5">
+                      Adds &ldquo;Posted with Virlio&rdquo; at end of caption.
                     </p>
                   </div>
                 </div>

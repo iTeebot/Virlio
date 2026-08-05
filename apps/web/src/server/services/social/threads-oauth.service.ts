@@ -59,6 +59,8 @@ export class ThreadsOAuthService {
     });
 
     const data = await res.json();
+    console.log("[Threads Token Exchange Response]:", data);
+
     if (data.error || data.error_message) {
       console.error("[Threads Token Exchange Error]:", data);
       throw new Error(data.error_message || data.error?.message || "Failed to exchange Threads authorization code.");
@@ -78,6 +80,7 @@ export class ThreadsOAuthService {
       const url = `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${this.appSecret}&access_token=${shortToken}`;
       const res = await fetch(url);
       const data = await res.json();
+      console.log("[Threads Long-Lived Token Response]:", data);
 
       if (data.access_token) {
         return data.access_token;
@@ -94,29 +97,50 @@ export class ThreadsOAuthService {
    * Uses exact threads_basic fields: id, username, threads_profile_picture_url
    */
   async getProfile(accessToken: string, defaultUserId?: string): Promise<ThreadsUserProfile> {
+    // Attempt 1: GET /v1.0/me?fields=id,username,threads_profile_picture_url
     try {
       const res = await fetch(
         `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
       );
       const data = await res.json();
+      console.log("[Threads getProfile Attempt 1 Data]:", data);
 
-      console.log("[Threads Profile Raw API Response]:", data);
-
-      if (data.id && data.username) {
+      if (data.id) {
         return {
           id: String(data.id),
-          username: String(data.username),
+          username: data.username ? String(data.username) : `threads_user_${String(data.id).slice(-4)}`,
           threads_profile_picture_url: data.threads_profile_picture_url || undefined,
         };
       }
     } catch (e) {
-      console.warn("[Threads getProfile Failed]:", e);
+      console.warn("[Threads getProfile Attempt 1 Failed]:", e);
+    }
+
+    // Attempt 2: GET /v1.0/{userId}?fields=id,username,threads_profile_picture_url
+    if (defaultUserId && !defaultUserId.startsWith("th_")) {
+      try {
+        const res = await fetch(
+          `https://graph.threads.net/v1.0/${defaultUserId}?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
+        );
+        const data = await res.json();
+        console.log("[Threads getProfile Attempt 2 Data]:", data);
+
+        if (data.id) {
+          return {
+            id: String(data.id),
+            username: data.username ? String(data.username) : `threads_user_${String(data.id).slice(-4)}`,
+            threads_profile_picture_url: data.threads_profile_picture_url || undefined,
+          };
+        }
+      } catch (e) {
+        console.warn("[Threads getProfile Attempt 2 Failed]:", e);
+      }
     }
 
     const fallbackId = defaultUserId || `th_default`;
     return {
       id: fallbackId,
-      username: `threads_user`,
+      username: fallbackId.startsWith("th_") ? "threads_user" : `threads_user_${fallbackId.slice(-4)}`,
       threads_profile_picture_url: `https://ui-avatars.com/api/?name=Threads&background=000000&color=fff`,
     };
   }
@@ -140,8 +164,8 @@ export class ThreadsOAuthService {
     if (code && code !== "mock_code") {
       try {
         const tokenResult = await this.exchangeCodeForToken(code, redirectUri);
+        profile = await this.getProfile(tokenResult.access_token, tokenResult.user_id);
         accessToken = await this.exchangeForLongLivedToken(tokenResult.access_token);
-        profile = await this.getProfile(accessToken, tokenResult.user_id);
       } catch (err) {
         console.warn("[Threads OAuth Token Exchange Exception]:", err);
       }

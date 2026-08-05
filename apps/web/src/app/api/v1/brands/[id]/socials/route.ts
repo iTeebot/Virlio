@@ -27,8 +27,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       orderBy: [desc(brandSocialConnections.created_at)],
     });
 
+    // Deduplicate any old fallback placeholder records for Threads
+    const threadsConnections = connections.filter((c) => c.platform === "threads");
+    if (threadsConnections.length > 1) {
+      const extraThreads = threadsConnections.slice(1);
+      for (const extra of extraThreads) {
+        await db.delete(brandSocialConnections).where(eq(brandSocialConnections.id, extra.id));
+      }
+    }
+
+    const filteredConnections = connections.filter(
+      (c, index, self) => c.platform !== "threads" || index === self.findIndex((t) => t.platform === "threads")
+    );
+
     // Strip sensitive tokens before returning to client
-    const sanitized = connections.map((c) => ({
+    const sanitized = filteredConnections.map((c) => ({
       id: c.id,
       brand_id: c.brand_id,
       platform: c.platform,

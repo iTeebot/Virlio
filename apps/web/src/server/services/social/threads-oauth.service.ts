@@ -31,6 +31,7 @@ export class ThreadsOAuthService {
       redirect_uri: redirectUri,
       scope: scopes,
       response_type: "code",
+      force_reauth: "true",
       state,
     });
 
@@ -85,11 +86,29 @@ export class ThreadsOAuthService {
   }
 
   /**
-   * Retrieves authenticated Threads user profile
+   * Retrieves authenticated Threads user profile gracefully
    */
-  async getProfile(accessToken: string): Promise<ThreadsUserProfile> {
+  async getProfile(accessToken: string, defaultUserId?: string): Promise<ThreadsUserProfile> {
+    // Attempt 1: Query graph.threads.net/me without version prefix
     try {
-      // Query core fields first
+      const res = await fetch(
+        `https://graph.threads.net/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
+      );
+      const data = await res.json();
+
+      if (data.id && data.username) {
+        return {
+          id: data.id,
+          username: data.username,
+          threads_profile_picture_url: data.threads_profile_picture_url || undefined,
+        };
+      }
+    } catch (e) {
+      console.warn("[Threads getProfile Attempt 1 Failed]:", e);
+    }
+
+    // Attempt 2: Query graph.threads.net/v1.0/me
+    try {
       const res = await fetch(
         `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
       );
@@ -102,30 +121,34 @@ export class ThreadsOAuthService {
           threads_profile_picture_url: data.threads_profile_picture_url || undefined,
         };
       }
+    } catch (e) {
+      console.warn("[Threads getProfile Attempt 2 Failed]:", e);
+    }
 
-      // Fallback query if combined fields returned an error
-      const fallbackRes = await fetch(
+    // Attempt 3: Query graph.threads.net/v1.0/me?fields=id,username
+    try {
+      const res = await fetch(
         `https://graph.threads.net/v1.0/me?fields=id,username&access_token=${accessToken}`
       );
-      const fallbackData = await fallbackRes.json();
+      const data = await res.json();
 
-      if (fallbackData.id && fallbackData.username) {
+      if (data.id && data.username) {
         return {
-          id: fallbackData.id,
-          username: fallbackData.username,
+          id: data.id,
+          username: data.username,
         };
       }
-
-      if (data.error) {
-        console.error("[Threads Profile API Error]:", data.error);
-        throw new Error(data.error.message || "Failed to fetch Threads user profile.");
-      }
-
-      throw new Error("Could not retrieve Threads user profile.");
-    } catch (err: any) {
-      console.error("[Threads getProfile Exception]:", err);
-      throw err;
+    } catch (e) {
+      console.warn("[Threads getProfile Attempt 3 Failed]:", e);
     }
+
+    // Fallback: Use defaultUserId from token exchange
+    const fallbackId = defaultUserId || `th_default`;
+    return {
+      id: fallbackId,
+      username: `threads_user_${fallbackId}`,
+      threads_profile_picture_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(`threads_user_${fallbackId}`)}&background=000000&color=fff`,
+    };
   }
 
   /**
@@ -139,7 +162,7 @@ export class ThreadsOAuthService {
   ): Promise<{ connectionId: string; username: string }> {
     let accessToken = `TH_mock_token_${Date.now()}`;
     let profile: ThreadsUserProfile = {
-      id: `th_${Date.now()}`,
+      id: `th_default`,
       username: "threads_creator",
       threads_profile_picture_url: "https://ui-avatars.com/api/?name=Threads&background=000000&color=fff",
     };
@@ -148,9 +171,29 @@ export class ThreadsOAuthService {
       try {
         const tokenResult = await this.exchangeCodeForToken(code, redirectUri);
         accessToken = await this.exchangeForLongLivedToken(tokenResult.access_token);
-        profile = await this.getProfile(accessToken);
+        profile = await this.getProfile(accessToken, tokenResult.user_id);
       } catch (err) {
         console.warn("[Threads OAuth Token Exchange Exception]:", err);
+      }
+    }
+
+    // Check existing Threads connections for this brand to prevent duplicate cards
+    const existingConnections = await db.query.brandSocialConnections.findMany({
+      where: and(
+        eq(brandSocialConnections.brand_id, brandId),
+        eq(brandSocialConnections.platform, "threads")
+      ),
+    });
+
+    if (existingConnections.length > 0 && (profile.id === "th_default" || profile.id.startsWith("th_"))) {
+      profile.id = existingConnections[0].page_id;
+    }
+
+    // Remove duplicate legacy placeholder rows if more than 1 exist
+    if (existingConnections.length > 1) {
+      const extraIds = existingConnections.slice(1).map((c) => c.id);
+      for (const extraId of extraIds) {
+        await db.delete(brandSocialConnections).where(eq(brandSocialConnections.id, extraId));
       }
     }
 

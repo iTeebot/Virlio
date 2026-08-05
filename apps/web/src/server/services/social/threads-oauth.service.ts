@@ -55,6 +55,7 @@ export class ThreadsOAuthService {
 
     const data = await res.json();
     if (data.error || data.error_message) {
+      console.error("[Threads Token Exchange Error]:", data);
       throw new Error(data.error_message || data.error?.message || "Failed to exchange Threads authorization code.");
     }
 
@@ -87,20 +88,44 @@ export class ThreadsOAuthService {
    * Retrieves authenticated Threads user profile
    */
   async getProfile(accessToken: string): Promise<ThreadsUserProfile> {
-    const url = `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url,threads_biography&access_token=${accessToken}`;
-    const res = await fetch(url);
-    const data = await res.json();
+    try {
+      // Query core fields first
+      const res = await fetch(
+        `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
+      );
+      const data = await res.json();
 
-    if (data.error) {
-      throw new Error(data.error.message || "Failed to fetch Threads user profile.");
+      if (data.id && data.username) {
+        return {
+          id: data.id,
+          username: data.username,
+          threads_profile_picture_url: data.threads_profile_picture_url || undefined,
+        };
+      }
+
+      // Fallback query if combined fields returned an error
+      const fallbackRes = await fetch(
+        `https://graph.threads.net/v1.0/me?fields=id,username&access_token=${accessToken}`
+      );
+      const fallbackData = await fallbackRes.json();
+
+      if (fallbackData.id && fallbackData.username) {
+        return {
+          id: fallbackData.id,
+          username: fallbackData.username,
+        };
+      }
+
+      if (data.error) {
+        console.error("[Threads Profile API Error]:", data.error);
+        throw new Error(data.error.message || "Failed to fetch Threads user profile.");
+      }
+
+      throw new Error("Could not retrieve Threads user profile.");
+    } catch (err: any) {
+      console.error("[Threads getProfile Exception]:", err);
+      throw err;
     }
-
-    return {
-      id: data.id,
-      username: data.username,
-      threads_profile_picture_url: data.threads_profile_picture_url,
-      threads_biography: data.threads_biography,
-    };
   }
 
   /**
@@ -133,7 +158,7 @@ export class ThreadsOAuthService {
     const cleanUsername = profile.username.startsWith("@") ? profile.username : `@${profile.username}`;
     const pictureUrl =
       profile.threads_profile_picture_url ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username)}&background=000000&color=fff`;
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username.replace("@", ""))}&background=000000&color=fff`;
 
     const [connection] = await db
       .insert(brandSocialConnections)

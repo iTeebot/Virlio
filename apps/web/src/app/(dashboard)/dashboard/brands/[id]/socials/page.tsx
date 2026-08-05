@@ -365,6 +365,7 @@ export default function SocialConnectionsPage() {
                       <img
                         src={conn.page_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(conn.page_name)}&background=000000&color=fff`}
                         alt={conn.page_name}
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(conn.page_name)}&background=000000&color=fff`;
                         }}
@@ -414,16 +415,22 @@ export default function SocialConnectionsPage() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={handleConnectFacebookOAuth}
+                        onClick={
+                          isThreads
+                            ? handleConnectThreadsOAuth
+                            : isIg
+                            ? handleConnectInstagramOAuth
+                            : handleConnectFacebookOAuth
+                        }
                         className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-gray-200 flex items-center gap-1 text-[11px] font-bold cursor-pointer"
-                        title="Reconnect Meta OAuth"
+                        title="Reconnect Account"
                       >
                         <RefreshCw className="w-3 h-3" /> Reconnect
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => handleDisconnect(conn.id, isIg ? "Instagram Account" : "Facebook Page")}
+                        onClick={() => handleDisconnect(conn.id, isThreads ? "Threads Profile" : isIg ? "Instagram Account" : "Facebook Page")}
                         disabled={disconnectingId === conn.id}
                         className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg border border-gray-200 flex items-center gap-1 text-[11px] font-bold cursor-pointer"
                         title="Disconnect Connection"

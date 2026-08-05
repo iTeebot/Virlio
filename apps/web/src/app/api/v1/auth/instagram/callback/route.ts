@@ -68,8 +68,21 @@ export async function GET(req: NextRequest) {
         const tokenData = await tokenRes.json();
 
         if (tokenData.access_token && tokenData.user_id) {
-          const userToken = tokenData.access_token;
+          let userToken = tokenData.access_token;
           const userId = tokenData.user_id;
+
+          // Exchange short-lived token for long-lived Instagram token (60-day validity)
+          try {
+            const longTokenRes = await fetch(
+              `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${appSecret}&access_token=${userToken}`
+            );
+            const longTokenData = await longTokenRes.json();
+            if (longTokenData.access_token) {
+              userToken = longTokenData.access_token;
+            }
+          } catch (longErr) {
+            console.warn("[Instagram Long-Lived Token Exchange Error]:", longErr);
+          }
 
           const profileRes = await fetch(
             `https://graph.instagram.com/me?fields=id,username,profile_picture_url,account_type&access_token=${userToken}`
@@ -85,9 +98,11 @@ export async function GET(req: NextRequest) {
               `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=e11d48&color=fff`,
             access_token: userToken,
           };
+        } else if (tokenData.error_message || tokenData.error) {
+          console.error("[Instagram Token Exchange API Error]:", tokenData);
         }
       } catch (err) {
-        console.warn("[Instagram OAuth Fallback Triggered]:", err);
+        console.warn("[Instagram OAuth Token Exchange Exception]:", err);
       }
     }
 

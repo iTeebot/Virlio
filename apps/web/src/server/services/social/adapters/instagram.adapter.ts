@@ -37,12 +37,12 @@ export class InstagramAdapter implements BaseSocialAdapter {
         finalCaption += `\n\nPosted with Virlio`;
       }
 
-      const isMockToken = accessToken.startsWith("EAAB_mock_") || accessToken.startsWith("mock_");
+      const isMockToken = accessToken.startsWith("EAAB_mock_") || accessToken.startsWith("mock_") || accessToken.startsWith("IGQV_token_");
 
       // 2. Perform live 2-step Instagram Container publishing via Graph API if token is real
       if (!isMockToken) {
-        // Step A: Create Media Container
-        const containerRes = await fetch(`https://graph.facebook.com/v18.0/${igAccountId}/media`, {
+        // Step A: Create Media Container (Try graph.instagram.com first, fallback to graph.facebook.com)
+        let containerRes = await fetch(`https://graph.instagram.com/v18.0/${igAccountId}/media`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -52,7 +52,22 @@ export class InstagramAdapter implements BaseSocialAdapter {
           }),
         });
 
-        const containerData = await containerRes.json();
+        let containerData = await containerRes.json();
+
+        if (containerData.error) {
+          console.warn("[Instagram Graph API First Attempt Failed, trying Facebook Graph API endpoint]:", containerData.error);
+          containerRes = await fetch(`https://graph.facebook.com/v18.0/${igAccountId}/media`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image_url: imageUrl,
+              caption: finalCaption,
+              access_token: accessToken,
+            }),
+          });
+          containerData = await containerRes.json();
+        }
+
         if (containerData.error) {
           console.error("[Instagram Container Creation Error]:", containerData.error);
           return {
@@ -67,7 +82,7 @@ export class InstagramAdapter implements BaseSocialAdapter {
         }
 
         // Step B: Publish Media Container
-        const publishRes = await fetch(`https://graph.facebook.com/v18.0/${igAccountId}/media_publish`, {
+        let publishRes = await fetch(`https://graph.instagram.com/v18.0/${igAccountId}/media_publish`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -76,7 +91,21 @@ export class InstagramAdapter implements BaseSocialAdapter {
           }),
         });
 
-        const publishData = await publishRes.json();
+        let publishData = await publishRes.json();
+
+        if (publishData.error) {
+          console.warn("[Instagram Graph API Publish First Attempt Failed, trying Facebook Graph API endpoint]:", publishData.error);
+          publishRes = await fetch(`https://graph.facebook.com/v18.0/${igAccountId}/media_publish`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              creation_id: creationId,
+              access_token: accessToken,
+            }),
+          });
+          publishData = await publishRes.json();
+        }
+
         if (publishData.error) {
           console.error("[Instagram Media Publish Error]:", publishData.error);
           return {

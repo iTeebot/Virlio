@@ -130,6 +130,35 @@ export default function BrandMemesPage() {
     }
   };
 
+  const handlePostToThreads = async (memeId: string) => {
+    if (!currentBrand?.id) return;
+    setPublishingMemeId(memeId);
+
+    try {
+      const res = await fetch(`/api/v1/brands/${currentBrand.id}/socials/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memeId,
+          platform: "threads",
+          appendAttribution: true,
+        }),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        toast.success(`Published meme to Threads (${json.data.pageName})!`, "Social Publisher");
+        await fetchMemes();
+      } else {
+        toast.error(json.error || "Failed to publish to Threads", "Duplicate Prevention");
+      }
+    } catch {
+      toast.error("Network error publishing to Threads", "Error");
+    } finally {
+      setPublishingMemeId(null);
+    }
+  };
+
   const handleToggleVisibility = async (id: string, currentVisibility: "public" | "private") => {
     setActionId(id);
     const newVisibility = currentVisibility === "public" ? "private" : "public";
@@ -362,6 +391,41 @@ export default function BrandMemesPage() {
                                 <Camera className="w-3.5 h-3.5" />
                               )}
                               <span>Post to Instagram</span>
+                            </button>
+                          );
+                        })()}
+
+                        {/* Threads Publishing Action */}
+                        {(() => {
+                          const threadsHistory = pubHistory.find((h) => h.meme_id === meme.id && h.platform === "threads");
+
+                          if (threadsHistory) {
+                            return (
+                              <div className="p-2 bg-slate-100 border border-slate-200 rounded-xl text-center space-y-0.5">
+                                <span className="text-[10px] font-black text-slate-900 flex items-center justify-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-700" />
+                                  Posted to Threads ({threadsHistory.page_name || "Account"})
+                                </span>
+                                <span className="text-[9px] text-slate-600 block">
+                                  {new Date(threadsHistory.published_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => handlePostToThreads(meme.id)}
+                              disabled={publishingMemeId === meme.id}
+                              className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-slate-900 hover:bg-black disabled:opacity-50 text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                            >
+                              {publishingMemeId === meme.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Globe className="w-3.5 h-3.5 text-white" />
+                              )}
+                              <span>Post to Threads</span>
                             </button>
                           );
                         })()}

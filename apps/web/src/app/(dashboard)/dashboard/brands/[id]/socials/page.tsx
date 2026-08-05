@@ -58,7 +58,7 @@ interface DiscoveredInstagramAccount {
 const ALL_PLATFORMS = [
   { id: "facebook", name: "Facebook Page", category: "Social", implemented: true, icon: Share2, desc: "Connect Facebook Pages managed via official Meta OAuth." },
   { id: "instagram", name: "Instagram Business", category: "Social", implemented: true, icon: Camera, desc: "Connect Instagram Business & Creator accounts linked to your Facebook Pages." },
-  { id: "threads", name: "Threads", category: "Social", implemented: false, desc: "Broadcast brand memes to Threads feed." },
+  { id: "threads", name: "Threads Profile", category: "Social", implemented: true, icon: Globe, desc: "Connect Threads account via official Threads OAuth for automated meme publishing." },
   { id: "linkedin", name: "LinkedIn Company Page", category: "Social", implemented: false, desc: "Share professional branded memes on LinkedIn." },
   { id: "x", name: "X (Twitter)", category: "Social", implemented: false, desc: "Auto-tweet memes with hashtags & media attachments." },
   { id: "tiktok", name: "TikTok", category: "Social", implemented: false, desc: "Publish video and image memes to TikTok." },
@@ -170,14 +170,20 @@ export default function SocialConnectionsPage() {
 
   // Initiate Meta OAuth Login Flow
   const handleConnectFacebookOAuth = () => {
-    toast.info("Redirecting to Meta OAuth 2.0 Login...", "Meta Authentication");
+    toast.info("Redirecting to Facebook Login...", "Facebook");
     window.location.href = `/api/v1/auth/facebook/connect?brandId=${currentBrand.id}`;
   };
 
   // Initiate Direct Instagram OAuth Login Flow
   const handleConnectInstagramOAuth = () => {
-    toast.info("Redirecting to Instagram Login...", "Instagram Authentication");
+    toast.info("Redirecting to Instagram Login...", "Instagram");
     window.location.href = `/api/v1/auth/instagram/connect?brandId=${currentBrand.id}`;
+  };
+
+  // Initiate Threads OAuth Login Flow
+  const handleConnectThreadsOAuth = () => {
+    toast.info("Redirecting to Threads Login...", "Threads");
+    window.location.href = `/api/v1/auth/threads/connect?brandId=${currentBrand.id}`;
   };
 
   // Connect Selected Discovered Facebook Page
@@ -282,29 +288,16 @@ export default function SocialConnectionsPage() {
       {/* CONNECTED ACCOUNTS SECTION */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            Connected Accounts ({connections.length})
-          </h2>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleConnectInstagramOAuth}
-              className="text-xs font-bold text-pink-700 hover:text-pink-900 bg-pink-50 hover:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl cursor-pointer shadow-2xs flex items-center gap-1.5"
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Connect Instagram (Direct Login)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleConnectFacebookOAuth}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Connect Facebook (Meta OAuth)</span>
-            </button>
+          <div>
+            <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              Connected Accounts ({connections.length})
+            </h2>
+            {connections.length > 0 && (
+              <p className="text-[11px] text-gray-500 font-medium pt-0.5">
+                Virlio supports connecting multiple Facebook Pages, Instagram accounts, and Threads profiles for {currentBrand.name}.
+              </p>
+            )}
           </div>
         </div>
 
@@ -314,7 +307,7 @@ export default function SocialConnectionsPage() {
             <p className="text-xs font-bold text-gray-500">Loading connected accounts...</p>
           </div>
         ) : connections.length === 0 ? (
-          <div className="p-8 bg-blue-50/50 border border-blue-100 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="p-8 bg-blue-50/50 border border-blue-100 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0">
                 <Share2 className="w-5 h-5" />
@@ -322,23 +315,45 @@ export default function SocialConnectionsPage() {
               <div>
                 <h3 className="text-xs font-bold text-blue-950">No Social Accounts Connected</h3>
                 <p className="text-[11px] text-blue-700">
-                  Authenticate with official Meta OAuth 2.0 to connect Facebook Pages and linked Instagram Business accounts for {currentBrand.name}.
+                  Connect your Facebook Pages, Instagram accounts, and Threads profiles to automate post publishing for {currentBrand.name}.
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleConnectFacebookOAuth}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Login with Facebook (Meta)</span>
-            </button>
+
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <button
+                type="button"
+                onClick={handleConnectThreadsOAuth}
+                className="text-xs font-bold text-slate-900 hover:text-black bg-white hover:bg-slate-100 border border-slate-300 px-3 py-2 rounded-xl cursor-pointer shadow-2xs flex items-center gap-1.5"
+              >
+                <Globe className="w-3.5 h-3.5 text-slate-800" />
+                <span>Connect Threads</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConnectInstagramOAuth}
+                className="text-xs font-bold text-pink-700 hover:text-pink-900 bg-white hover:bg-pink-50 border border-pink-200 px-3 py-2 rounded-xl cursor-pointer shadow-2xs flex items-center gap-1.5"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Connect Instagram</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConnectFacebookOAuth}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Connect Facebook</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {connections.map((conn) => {
               const isIg = conn.platform === "instagram";
+              const isThreads = conn.platform === "threads";
 
               return (
                 <div
@@ -348,10 +363,10 @@ export default function SocialConnectionsPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <img
-                        src={conn.page_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(conn.page_name)}&background=e11d48&color=fff`}
+                        src={conn.page_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(conn.page_name)}&background=000000&color=fff`}
                         alt={conn.page_name}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(conn.page_name)}&background=e11d48&color=fff`;
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(conn.page_name)}&background=000000&color=fff`;
                         }}
                         className="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0"
                       />
@@ -360,22 +375,30 @@ export default function SocialConnectionsPage() {
                           <h4 className="text-xs font-bold text-gray-900 truncate">{conn.page_name}</h4>
                           <span
                             className={`px-1.5 py-0.5 rounded border text-[9px] font-extrabold uppercase ${
-                              isIg
+                              isThreads
+                                ? "bg-slate-100 text-slate-800 border-slate-300"
+                                : isIg
                                 ? "bg-pink-50 text-pink-700 border-pink-200"
                                 : "bg-blue-50 text-blue-700 border-blue-200"
                             }`}
                           >
-                            {isIg ? "Instagram Business" : "Facebook Page"}
+                            {isThreads ? "Threads Profile" : isIg ? "Instagram Business" : "Facebook Page"}
                           </span>
                         </div>
                         <p className="text-[10px] text-gray-400 font-mono truncate">
-                          {isIg ? `IG ID: ${conn.page_id}` : `Page ID: ${conn.page_id}`}
+                          {isThreads ? `Threads ID: ${conn.page_id}` : isIg ? `IG ID: ${conn.page_id}` : `Page ID: ${conn.page_id}`}
                         </p>
                       </div>
                     </div>
 
                     <a
-                      href={isIg ? `https://instagram.com/${conn.page_name.replace("@", "")}` : `https://facebook.com/${conn.page_id}`}
+                      href={
+                        isThreads
+                          ? `https://www.threads.net/${conn.page_name.replace("@", "")}`
+                          : isIg
+                          ? `https://instagram.com/${conn.page_name.replace("@", "")}`
+                          : `https://facebook.com/${conn.page_id}`
+                      }
                       target="_blank"
                       rel="noreferrer"
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
@@ -715,7 +738,7 @@ export default function SocialConnectionsPage() {
 
                     {platform.implemented ? (
                       <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-extrabold uppercase">
-                        Meta OAuth
+                        Live
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-600 text-[9px] font-extrabold uppercase flex items-center gap-1">
@@ -729,29 +752,41 @@ export default function SocialConnectionsPage() {
 
                 <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
                   {platform.implemented ? (
-                    isConnected ? (
-                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Connected via Meta OAuth
-                      </span>
-                    ) : platform.id === "instagram" ? (
-                      <button
-                        type="button"
-                        onClick={handleConnectInstagramOAuth}
-                        className="w-full py-2 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Connect Instagram (Direct Login)</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleConnectFacebookOAuth}
-                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Login with Facebook</span>
-                      </button>
-                    )
+                    <div className="w-full space-y-2">
+                      {isConnected && (
+                        <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Connected
+                        </span>
+                      )}
+                      {platform.id === "threads" ? (
+                        <button
+                          type="button"
+                          onClick={handleConnectThreadsOAuth}
+                          className="w-full py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{isConnected ? "+ Connect Another Threads" : "Connect Threads"}</span>
+                        </button>
+                      ) : platform.id === "instagram" ? (
+                        <button
+                          type="button"
+                          onClick={handleConnectInstagramOAuth}
+                          className="w-full py-2 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{isConnected ? "+ Connect Another Instagram" : "Connect Instagram"}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleConnectFacebookOAuth}
+                          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{isConnected ? "+ Connect Another Facebook Page" : "Connect Facebook"}</span>
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-[11px] text-gray-400 italic">Available in a future Virlio release</span>
                   )}

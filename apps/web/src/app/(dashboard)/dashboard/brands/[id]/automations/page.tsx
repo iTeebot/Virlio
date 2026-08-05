@@ -24,6 +24,8 @@ import {
   FileText,
   Lock,
   MoreVertical,
+  Pencil,
+  Save,
 } from "lucide-react";
 
 interface AutomationItem {
@@ -58,10 +60,45 @@ export default function BrandAutomationsListPage() {
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
 
+  // Rename Modal
+  const [renameItem, setRenameItem] = useState<AutomationItem | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [renaming, setRenaming] = useState(false);
+
   // Action status
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+  const handleRenameAutomation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameItem || !editName.trim() || !currentBrand?.id) return;
+
+    setRenaming(true);
+    try {
+      const res = await fetch(`/api/v1/brands/${currentBrand.id}/automations/${renameItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName.trim(),
+          description: editDescription.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(`Workflow renamed to "${editName.trim()}"`, "Updated");
+        setRenameItem(null);
+        await fetchAutomations();
+      } else {
+        toast.error("Failed to rename workflow", "Error");
+      }
+    } catch {
+      toast.error("Network error renaming workflow", "Error");
+    } finally {
+      setRenaming(false);
+    }
+  };
 
   const fetchAutomations = async () => {
     if (!currentBrand?.id) return;
@@ -371,6 +408,19 @@ export default function BrandAutomationsListPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => {
+                      setRenameItem(auto);
+                      setEditName(auto.name);
+                      setEditDescription(auto.description || "");
+                    }}
+                    title="Rename Workflow"
+                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl border border-gray-200 cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => handleDuplicate(auto.id)}
                     disabled={duplicatingId === auto.id}
                     title="Duplicate Workflow"
@@ -408,14 +458,14 @@ export default function BrandAutomationsListPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <Zap className="w-5 h-5 text-blue-600" />
-                New Brand Automation
+                Create New Automation
               </h3>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-900 text-sm font-bold"
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold p-1 rounded-lg hover:bg-gray-100"
               >
                 ✕
               </button>
@@ -429,37 +479,101 @@ export default function BrandAutomationsListPage() {
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Meme to Facebook & Article Pipeline"
-                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/20 font-bold"
+                  placeholder="e.g. Instagram & Facebook Auto-Publisher"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Description</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Description (Optional)</label>
                 <textarea
                   rows={3}
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Briefly describe what this workflow automates..."
-                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500/20 resize-none"
+                  placeholder="Describe what this automation pipeline does..."
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
                 />
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+              <div className="pt-2 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={creating}
-                  className="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-50 flex items-center gap-1.5"
+                  disabled={creating || !newName.trim()}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                  <span>Create & Open Editor</span>
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  <span>Create Pipeline</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* RENAME AUTOMATION MODAL */}
+      {renameItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-blue-600" />
+                Rename Automation
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRenameItem(null)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold p-1 rounded-lg hover:bg-gray-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleRenameAutomation} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Workflow Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g. Daily Meme Broadcaster"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Description (Optional)</label>
+                <textarea
+                  rows={3}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Explain what this automation pipeline does..."
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRenameItem(null)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={renaming || !editName.trim()}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  {renaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>Save Changes</span>
                 </button>
               </div>
             </form>

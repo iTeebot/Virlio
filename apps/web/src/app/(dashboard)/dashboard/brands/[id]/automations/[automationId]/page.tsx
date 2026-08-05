@@ -41,6 +41,11 @@ import {
   X,
   Plus,
   Trash2,
+  Pencil,
+  ExternalLink,
+  Settings2,
+  HelpCircle,
+  AlertCircle,
 } from "lucide-react";
 
 // ==========================================
@@ -163,6 +168,47 @@ function CameraNodeComponent({ data, selected }: any) {
   );
 }
 
+function ThreadsNodeComponent({ data, selected }: any) {
+  return (
+    <div
+      className={`w-52 bg-white border-2 rounded-xl shadow-xs overflow-hidden select-none transition-all ${
+        selected ? "border-slate-900 ring-2 ring-slate-800/20" : "border-gray-200"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-2.5 !h-2.5 !bg-slate-900 !border-2 !border-white"
+      />
+
+      <div className="px-2.5 py-1.5 bg-slate-900 text-white flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Globe className="w-3.5 h-3.5" />
+          <span className="text-[10px] font-black uppercase tracking-wider">Social Action</span>
+        </div>
+        <span className="px-1.5 py-0.2 bg-emerald-500 text-[8px] font-extrabold rounded uppercase">Live</span>
+      </div>
+
+      <div className="p-2.5 space-y-1.5">
+        <h4 className="text-[11px] font-bold text-gray-900 flex items-center gap-1">
+          <Globe className="w-3.5 h-3.5 text-slate-800 shrink-0" />
+          <span className="truncate">Post to Threads</span>
+        </h4>
+        <div className="text-[9px] text-gray-500 space-y-0.5 bg-gray-50 p-1.5 rounded-lg border border-gray-100 font-mono">
+          <div className="truncate">Caption: {data.captionType || "Meme Desc"}</div>
+          <div className="truncate">Tags: {data.tagsType || "Meme Tags"}</div>
+        </div>
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2.5 !h-2.5 !bg-slate-900 !border-2 !border-white"
+      />
+    </div>
+  );
+}
+
 function ArticleNodeComponent({ data, selected }: any) {
   return (
     <div
@@ -239,6 +285,7 @@ const ALL_ACTION_NODES = [
   { id: "x", label: "Post to X (Twitter)", implemented: false, category: "Social" },
   { id: "linkedin", label: "Post to LinkedIn", implemented: false, category: "Social" },
   { id: "instagram", label: "Post to Instagram", implemented: true, category: "Social" },
+  { id: "threads", label: "Post to Threads", implemented: true, category: "Social" },
   { id: "reddit", label: "Post to Reddit", implemented: false, category: "Social" },
   { id: "pinterest", label: "Post to Pinterest", implemented: false, category: "Social" },
   { id: "youtube", label: "Post to YouTube", implemented: false, category: "Social" },
@@ -247,13 +294,17 @@ const ALL_ACTION_NODES = [
   { id: "devto", label: "Publish Dev.to Post", implemented: false, category: "Publishing" },
 ];
 
-export default function AutomationEditorPage() {
+export default function BrandAutomationCanvasPage() {
   const params = useParams();
   const brandId = params.id as string;
   const automationId = params.automationId as string;
   const { currentBrand } = useBrand();
 
   const [automation, setAutomation] = useState<any>(null);
+  const [automationName, setAutomationName] = useState("");
+  const [automationDescription, setAutomationDescription] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -264,6 +315,7 @@ export default function AutomationEditorPage() {
       triggerNode: TriggerNodeComponent,
       facebookNode: FacebookNodeComponent,
       instagramNode: CameraNodeComponent,
+      threadsNode: ThreadsNodeComponent,
       articleNode: ArticleNodeComponent,
       lockedNode: LockedActionNodeComponent,
     }),
@@ -297,7 +349,6 @@ export default function AutomationEditorPage() {
           document.activeElement instanceof HTMLSelectElement
         )
       ) {
-        e.preventDefault();
         handleDeleteSelectedNode();
       }
     };
@@ -310,8 +361,8 @@ export default function AutomationEditorPage() {
   useEffect(() => {
     async function loadEditor() {
       if (!brandId || !automationId) return;
+      setLoading(true);
       try {
-        setLoading(true);
         const [autoRes, socialRes] = await Promise.all([
           fetch(`/api/v1/brands/${brandId}/automations/${automationId}`),
           fetch(`/api/v1/brands/${brandId}/socials`),
@@ -320,6 +371,8 @@ export default function AutomationEditorPage() {
         if (autoRes.ok) {
           const json = await autoRes.json();
           setAutomation(json.data);
+          setAutomationName(json.data.name || "");
+          setAutomationDescription(json.data.description || "");
           if (json.data.graphData) {
             setNodes(json.data.graphData.nodes || []);
             setEdges(json.data.graphData.edges || []);
@@ -368,16 +421,20 @@ export default function AutomationEditorPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: automation.name,
-          description: automation.description,
-          is_enabled: automation.is_enabled,
+          name: automationName || automation?.name,
+          description: automationDescription || automation?.description,
+          is_enabled: automation?.is_enabled,
           graphData,
         }),
       });
 
       if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          setAutomation(json.data);
+        }
         setSaveSuccess(true);
-        toast.success("Workflow graph saved to database!", "Version Recorded");
+        toast.success("Workflow name and graph saved!", "Saved");
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
         toast.error("Failed to save workflow graph.", "Error");
@@ -413,6 +470,19 @@ export default function AutomationEditorPage() {
         position: { x: 400, y: 150 + nodes.length * 40 },
         data: {
           label: "Post to Instagram",
+          captionType: "use_meme_description",
+          tagsType: "use_meme_tags",
+          imageType: "generated_meme",
+          visibility: "public",
+        },
+      };
+    } else if (type === "threadsNode") {
+      newNode = {
+        id: newNodeId,
+        type: "threadsNode",
+        position: { x: 400, y: 150 + nodes.length * 40 },
+        data: {
+          label: "Post to Threads",
           captionType: "use_meme_description",
           tagsType: "use_meme_tags",
           imageType: "generated_meme",
@@ -464,7 +534,31 @@ export default function AutomationEditorPage() {
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-gray-900 truncate max-w-xs">{automation?.name || "Automation Editor"}</h1>
+              {isEditingName ? (
+                <input
+                  type="text"
+                  value={automationName}
+                  onChange={(e) => setAutomationName(e.target.value)}
+                  onBlur={() => setIsEditingName(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") setIsEditingName(false);
+                  }}
+                  autoFocus
+                  className="px-2 py-0.5 bg-gray-50 border border-blue-500 rounded-lg text-sm font-bold text-gray-900 focus:outline-hidden"
+                />
+              ) : (
+                <div
+                  className="flex items-center gap-1.5 group cursor-pointer"
+                  onClick={() => setIsEditingName(true)}
+                  title="Click to rename workflow"
+                >
+                  <h1 className="text-sm font-bold text-gray-900 truncate max-w-xs group-hover:text-blue-600 transition-colors">
+                    {automationName || automation?.name || "Automation Editor"}
+                  </h1>
+                  <Pencil className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 transition-colors opacity-80" />
+                </div>
+              )}
+
               <span
                 className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                   automation?.is_enabled ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-gray-100 text-gray-600"
@@ -473,7 +567,7 @@ export default function AutomationEditorPage() {
                 {automation?.is_enabled ? "Enabled" : "Draft"}
               </span>
             </div>
-            <p className="text-[11px] text-gray-400 truncate max-w-md">{automation?.description || "React Flow Workflow Canvas"}</p>
+            <p className="text-[11px] text-gray-400 truncate max-w-md">{automationDescription || automation?.description || "React Flow Workflow Canvas"}</p>
           </div>
         </div>
 
@@ -529,6 +623,18 @@ export default function AutomationEditorPage() {
                   <div className="flex items-center gap-2">
                     <Camera className="w-4 h-4 text-pink-600" />
                     <span className="text-xs font-bold text-gray-900">Post to Instagram</span>
+                  </div>
+                  <Plus className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAddNodeToCanvas("threadsNode")}
+                  className="w-full p-2.5 bg-white border border-gray-200 hover:border-slate-800 rounded-xl flex items-center justify-between text-left transition-colors cursor-pointer shadow-2xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-slate-800" />
+                    <span className="text-xs font-bold text-gray-900">Post to Threads</span>
                   </div>
                   <Plus className="w-3.5 h-3.5 text-gray-400" />
                 </button>
@@ -639,7 +745,7 @@ export default function AutomationEditorPage() {
                     <Share2 className="w-4 h-4 text-blue-600 shrink-0" />
                     <div>
                       <span className="text-xs font-bold text-blue-900 block">Facebook Page Publishing</span>
-                      <span className="text-[10px] text-blue-700 block">Status: Centralized Account Shared</span>
+                      <span className="text-[10px] text-blue-700 block">Status: Connected</span>
                     </div>
                   </div>
 
@@ -682,7 +788,7 @@ export default function AutomationEditorPage() {
                     <Camera className="w-4 h-4 text-pink-600 shrink-0" />
                     <div>
                       <span className="text-xs font-bold text-pink-900 block">Instagram Business Publishing</span>
-                      <span className="text-[10px] text-pink-700 block">Status: Direct OAuth Connected</span>
+                      <span className="text-[10px] text-pink-700 block">Status: Connected</span>
                     </div>
                   </div>
 
@@ -712,6 +818,49 @@ export default function AutomationEditorPage() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs"
                         >
                           <Plus className="w-3.5 h-3.5" /> Connect Instagram
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === "threadsNode" && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-slate-100 border border-slate-200 rounded-2xl flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-slate-800 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Threads Profile Publishing</span>
+                      <span className="text-[10px] text-slate-700 block">Status: Connected</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Target Threads Profile</label>
+                    {connectedPages.filter((p) => p.platform === "threads").length > 0 ? (
+                      <select
+                        value={
+                          connectedPages.find((p) => p.platform === "threads")?.page_id || ""
+                        }
+                        onChange={() => {}}
+                        className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900"
+                      >
+                        {connectedPages
+                          .filter((p) => p.platform === "threads")
+                          .map((p) => (
+                            <option key={p.id} value={p.page_id}>
+                              {p.page_name} (ID: {p.page_id})
+                            </option>
+                          ))}
+                      </select>
+                    ) : (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-center">
+                        <p className="text-xs font-bold text-amber-900">No Threads account connected.</p>
+                        <Link
+                          href={`/dashboard/brands/${brandId}/socials`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors shadow-2xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Connect Threads
                         </Link>
                       </div>
                     )}

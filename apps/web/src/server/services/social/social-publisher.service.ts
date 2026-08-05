@@ -3,6 +3,7 @@ import { brandSocialConnections, publishingHistory, memes } from "@virlio/databa
 import { eq, and } from "drizzle-orm";
 import { facebookAdapter } from "./adapters/facebook.adapter";
 import { instagramAdapter } from "./adapters/instagram.adapter";
+import { threadsAdapter } from "./adapters/threads.adapter";
 import { BaseSocialAdapter } from "./adapters/base-social.adapter";
 
 export interface PublishMemeRequest {
@@ -25,6 +26,7 @@ export class SocialPublisherService {
   constructor() {
     this.registerAdapter(facebookAdapter);
     this.registerAdapter(instagramAdapter);
+    this.registerAdapter(threadsAdapter);
   }
 
   registerAdapter(adapter: BaseSocialAdapter) {

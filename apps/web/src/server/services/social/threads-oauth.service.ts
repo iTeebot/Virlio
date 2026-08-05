@@ -109,17 +109,17 @@ export class ThreadsOAuthService {
    * Retrieves authenticated Threads user profile gracefully
    */
   async getProfile(accessToken: string, defaultUserId?: string): Promise<ThreadsUserProfile> {
-    // Attempt 1: Query graph.threads.net/me without version prefix
+    // Attempt 1: Bearer Header query to /v1.0/me
     try {
-      const res = await fetch(
-        `https://graph.threads.net/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
-      );
+      const res = await fetch(`https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       const data = await res.json();
 
-      if (data.id && data.username) {
+      if (data.id && (data.username || data.name)) {
         return {
           id: data.id,
-          username: data.username,
+          username: data.username || data.name,
           threads_profile_picture_url: data.threads_profile_picture_url || undefined,
         };
       }
@@ -127,17 +127,17 @@ export class ThreadsOAuthService {
       console.warn("[Threads getProfile Attempt 1 Failed]:", e);
     }
 
-    // Attempt 2: Query graph.threads.net/v1.0/me
+    // Attempt 2: Query param query to /v1.0/me
     try {
       const res = await fetch(
-        `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
+        `https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url&access_token=${accessToken}`
       );
       const data = await res.json();
 
-      if (data.id && data.username) {
+      if (data.id && (data.username || data.name)) {
         return {
           id: data.id,
-          username: data.username,
+          username: data.username || data.name,
           threads_profile_picture_url: data.threads_profile_picture_url || undefined,
         };
       }
@@ -149,14 +149,14 @@ export class ThreadsOAuthService {
     if (defaultUserId && !defaultUserId.startsWith("th_")) {
       try {
         const res = await fetch(
-          `https://graph.threads.net/v1.0/${defaultUserId}?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
+          `https://graph.threads.net/v1.0/${defaultUserId}?fields=id,username,name,threads_profile_picture_url&access_token=${accessToken}`
         );
         const data = await res.json();
 
-        if (data.id && data.username) {
+        if (data.id && (data.username || data.name)) {
           return {
             id: data.id,
-            username: data.username,
+            username: data.username || data.name,
             threads_profile_picture_url: data.threads_profile_picture_url || undefined,
           };
         }
@@ -169,8 +169,8 @@ export class ThreadsOAuthService {
     const fallbackId = defaultUserId || `th_default`;
     return {
       id: fallbackId,
-      username: `threads_user_${fallbackId}`,
-      threads_profile_picture_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(`threads_user_${fallbackId}`)}&background=000000&color=fff`,
+      username: `threads_user`,
+      threads_profile_picture_url: `https://ui-avatars.com/api/?name=Threads&background=000000&color=fff`,
     };
   }
 
@@ -186,7 +186,7 @@ export class ThreadsOAuthService {
     let accessToken = `TH_mock_token_${Date.now()}`;
     let profile: ThreadsUserProfile = {
       id: `th_default`,
-      username: "threads_creator",
+      username: "threads_user",
       threads_profile_picture_url: "https://ui-avatars.com/api/?name=Threads&background=000000&color=fff",
     };
 

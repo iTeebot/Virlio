@@ -49,12 +49,23 @@ export class ThreadsOAuthService {
     formData.append("redirect_uri", redirectUri);
     formData.append("code", code);
 
-    const res = await fetch("https://graph.threads.net/oauth/access_token", {
+    // Attempt A: graph.threads.net/oauth/access_token
+    let res = await fetch("https://graph.threads.net/oauth/access_token", {
       method: "POST",
       body: formData,
     });
+    let data = await res.json();
 
-    const data = await res.json();
+    // Fallback Attempt B: graph.facebook.com/v14.0/oauth/access_token
+    if (data.error || data.error_message) {
+      console.warn("[Threads Token Exchange Attempt A failed, trying graph.facebook.com fallback]:", data);
+      res = await fetch("https://graph.facebook.com/v14.0/oauth/access_token", {
+        method: "POST",
+        body: formData,
+      });
+      data = await res.json();
+    }
+
     if (data.error || data.error_message) {
       console.error("[Threads Token Exchange Error]:", data);
       throw new Error(data.error_message || data.error?.message || "Failed to exchange Threads authorization code.");
@@ -71,13 +82,22 @@ export class ThreadsOAuthService {
    */
   async exchangeForLongLivedToken(shortToken: string): Promise<string> {
     try {
-      const url = `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${this.appSecret}&access_token=${shortToken}`;
-      const res = await fetch(url);
-      const data = await res.json();
+      let url = `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${this.appSecret}&access_token=${shortToken}`;
+      let res = await fetch(url);
+      let data = await res.json();
 
       if (data.access_token) {
         return data.access_token;
       }
+
+      // Fallback: graph.facebook.com/v14.0/access_token
+      url = `https://graph.facebook.com/v14.0/access_token?grant_type=th_exchange_token&client_secret=${this.appSecret}&access_token=${shortToken}`;
+      res = await fetch(url);
+      data = await res.json();
+      if (data.access_token) {
+        return data.access_token;
+      }
+
       return shortToken;
     } catch (err) {
       console.warn("[Threads Long-Lived Token Exchange Warning]:", err);
@@ -125,21 +145,24 @@ export class ThreadsOAuthService {
       console.warn("[Threads getProfile Attempt 2 Failed]:", e);
     }
 
-    // Attempt 3: Query graph.threads.net/v1.0/me?fields=id,username
-    try {
-      const res = await fetch(
-        `https://graph.threads.net/v1.0/me?fields=id,username&access_token=${accessToken}`
-      );
-      const data = await res.json();
+    // Attempt 3: Query graph.threads.net/v1.0/${defaultUserId} by explicit user ID
+    if (defaultUserId && !defaultUserId.startsWith("th_")) {
+      try {
+        const res = await fetch(
+          `https://graph.threads.net/v1.0/${defaultUserId}?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
+        );
+        const data = await res.json();
 
-      if (data.id && data.username) {
-        return {
-          id: data.id,
-          username: data.username,
-        };
+        if (data.id && data.username) {
+          return {
+            id: data.id,
+            username: data.username,
+            threads_profile_picture_url: data.threads_profile_picture_url || undefined,
+          };
+        }
+      } catch (e) {
+        console.warn("[Threads getProfile Attempt 3 Failed]:", e);
       }
-    } catch (e) {
-      console.warn("[Threads getProfile Attempt 3 Failed]:", e);
     }
 
     // Fallback: Use defaultUserId from token exchange

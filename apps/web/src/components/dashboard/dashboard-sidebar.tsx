@@ -82,8 +82,8 @@ export function DashboardSidebar({ mobileOpen = false, onMobileClose }: Dashboar
     >
       <div className="space-y-4 overflow-y-auto scrollbar-none">
         {/* Brand Header Badge & Collapse Toggle */}
-        <div className="flex items-center justify-between gap-2">
-          {!isCollapsed ? (
+        {!isCollapsed ? (
+          <div className="flex items-center justify-between gap-2">
             <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-2xl flex items-center gap-3 min-w-0 flex-1">
               <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
                 {currentBrand.logo_url ? (
@@ -98,25 +98,36 @@ export function DashboardSidebar({ mobileOpen = false, onMobileClose }: Dashboar
                 <span className="text-[10px] text-gray-400 font-mono block truncate">@{currentBrand.slug}</span>
               </div>
             </div>
-          ) : (
-            <div className="mx-auto w-10 h-10 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
+
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              title="Collapse Sidebar"
+              className="hidden lg:flex p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer shrink-0"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2.5 w-full py-1">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
               {currentBrand.logo_url ? (
                 <img src={currentBrand.logo_url} alt={currentBrand.name} className="w-full h-full object-cover" />
               ) : (
                 currentBrand.name.slice(0, 2).toUpperCase()
               )}
             </div>
-          )}
 
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            className="hidden lg:flex p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer shrink-0"
-          >
-            {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              title="Expand Sidebar"
+              className="hidden lg:flex p-2 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors cursor-pointer shadow-2xs"
+            >
+              <PanelLeftOpen className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Navigation List */}
         <nav className="space-y-1">

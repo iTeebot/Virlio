@@ -8,7 +8,7 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-// Initial default React Flow graph for new automations
+// Initial default React Flow graph for new automations (Only Trigger Node by default)
 const DEFAULT_INITIAL_GRAPH = {
   nodes: [
     {
@@ -21,29 +21,8 @@ const DEFAULT_INITIAL_GRAPH = {
         description: "Runs whenever this Brand successfully publishes a meme.",
       },
     },
-    {
-      id: "node-action-facebook-1",
-      type: "facebookNode",
-      position: { x: 450, y: 150 },
-      data: {
-        label: "Post to Facebook",
-        captionType: "use_meme_description",
-        tagsType: "use_meme_tags",
-        imageType: "generated_meme",
-        visibility: "public",
-        status: "implemented",
-      },
-    },
   ],
-  edges: [
-    {
-      id: "edge-trigger-fb-1",
-      source: "node-trigger-1",
-      target: "node-action-facebook-1",
-      animated: true,
-      style: { stroke: "#2563eb", strokeWidth: 2 },
-    },
-  ],
+  edges: [],
   viewport: { x: 0, y: 0, zoom: 1 },
 };
 
@@ -58,7 +37,7 @@ async function ensureTablesExist() {
         status text NOT NULL DEFAULT 'draft',
         is_enabled boolean NOT NULL DEFAULT false,
         trigger_type text NOT NULL DEFAULT 'meme_published',
-        node_count integer NOT NULL DEFAULT 2,
+        node_count integer NOT NULL DEFAULT 1,
         run_count integer NOT NULL DEFAULT 0,
         last_execution_at timestamp with time zone,
         created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -110,8 +89,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
-    const status = searchParams.get("status") || "all"; // all | enabled | disabled | draft
-    const sort = searchParams.get("sort") || "updated"; // updated | created | alpha
+    const status = searchParams.get("status") || "all";
+    const sort = searchParams.get("sort") || "updated";
 
     const conditions: any[] = [eq(brandAutomations.brand_id, brandId)];
 
@@ -172,7 +151,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
     if (!brand) return apiNotFound("Brand not found");
 
-    // Insert master automation
+    // Insert master automation with only Trigger node by default
     const [automation] = await db
       .insert(brandAutomations)
       .values({
@@ -182,7 +161,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         status: "draft",
         is_enabled: false,
         trigger_type: "meme_published",
-        node_count: 2,
+        node_count: 1,
         run_count: 0,
         created_by: session.user.id,
       })

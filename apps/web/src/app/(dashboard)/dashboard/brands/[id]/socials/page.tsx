@@ -348,8 +348,11 @@ export default function SocialConnectionsPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <img
-                        src={conn.page_image_url || "/images/placeholders/brand-avatar.png"}
+                        src={conn.page_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(conn.page_name)}&background=e11d48&color=fff`}
                         alt={conn.page_name}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(conn.page_name)}&background=e11d48&color=fff`;
+                        }}
                         className="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0"
                       />
                       <div className="truncate">

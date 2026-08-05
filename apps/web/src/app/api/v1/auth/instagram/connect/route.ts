@@ -36,14 +36,21 @@ export async function GET(req: NextRequest) {
     const redirectUri = `${origin}/api/v1/auth/instagram/callback`;
     const state = Buffer.from(JSON.stringify({ brandId, ts: Date.now() })).toString("base64url");
 
-    // Instagram Business API Scopes
-    const scopes = ["instagram_business_basic", "instagram_business_content_publish"].join(",");
+    // Exact Instagram Business API Scopes given by Meta Dashboard
+    const scopes = [
+      "instagram_business_basic",
+      "instagram_business_manage_messages",
+      "instagram_business_manage_comments",
+      "instagram_business_content_publish",
+      "instagram_business_manage_insights",
+    ].join(",");
 
     const params = new URLSearchParams({
+      force_reauth: "true",
       client_id: igAppId,
       redirect_uri: redirectUri,
-      scope: scopes,
       response_type: "code",
+      scope: scopes,
       state,
     });
 

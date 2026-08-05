@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     let igUser = {
       id: `ig_${Date.now()}`,
       username: "instagram_creator",
-      profile_picture: "/images/placeholders/brand-avatar.png",
+      profile_picture: "https://ui-avatars.com/api/?name=Instagram&background=e11d48&color=fff",
       access_token: `IGQV_token_${Date.now()}`,
     };
 
@@ -72,14 +72,17 @@ export async function GET(req: NextRequest) {
           const userId = tokenData.user_id;
 
           const profileRes = await fetch(
-            `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${userToken}`
+            `https://graph.instagram.com/me?fields=id,username,profile_picture_url,account_type&access_token=${userToken}`
           );
           const profileData = await profileRes.json();
+          const uname = profileData.username || `ig_user_${userId}`;
 
           igUser = {
             id: profileData.id || userId,
-            username: profileData.username || `ig_user_${userId}`,
-            profile_picture: "/images/placeholders/brand-avatar.png",
+            username: uname,
+            profile_picture:
+              profileData.profile_picture_url ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=e11d48&color=fff`,
             access_token: userToken,
           };
         }
@@ -104,12 +107,19 @@ export async function GET(req: NextRequest) {
           access_token: encryptedToken,
           connected_by: session?.user?.id || null,
           is_active: true,
-          scopes: ["instagram_business_basic", "instagram_business_content_publish"],
+          scopes: [
+            "instagram_business_basic",
+            "instagram_business_manage_messages",
+            "instagram_business_manage_comments",
+            "instagram_business_content_publish",
+            "instagram_business_manage_insights",
+          ],
         })
         .onConflictDoUpdate({
           target: [brandSocialConnections.brand_id, brandSocialConnections.platform, brandSocialConnections.page_id],
           set: {
             page_name: cleanUsername,
+            page_image_url: igUser.profile_picture,
             access_token: encryptedToken,
             is_active: true,
             updated_at: new Date(),

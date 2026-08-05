@@ -109,23 +109,16 @@ export async function generateMemes(
   // 6. Persist draft memes
   const generatedMemes: GeneratedMeme[] = [];
   const { validateSafetyAndProfanity } = await import("@/lib/validations/safety-filter");
+  const { ensureValidTitle, ensureValidDescription } = await import("./meme-metadata.service");
 
+  let candidateIdx = 0;
   for (const candidate of aiResponse.result.memes) {
     const template = templateMap.get(candidate.template_id);
 
-    // Sanitize AI outputs against safety policy
-    let cleanTitle = candidate.title || "Branded Meme";
-    let cleanDescription = candidate.description || "";
     let cleanTopText = candidate.top_text || null;
     let cleanBottomText = candidate.bottom_text || null;
     let cleanRegionCaptions = candidate.region_captions || null;
 
-    if (cleanTitle && !validateSafetyAndProfanity(cleanTitle).isValid) {
-      cleanTitle = "Branded Meme";
-    }
-    if (cleanDescription && !validateSafetyAndProfanity(cleanDescription).isValid) {
-      cleanDescription = "";
-    }
     if (cleanTopText && !validateSafetyAndProfanity(cleanTopText).isValid) {
       cleanTopText = "";
     }
@@ -141,6 +134,43 @@ export async function generateMemes(
       }
       cleanRegionCaptions = copy;
     }
+
+    // Ensure valid AI title (3-8 words) and description (40-100 words) with fallback
+    let cleanTitle = ensureValidTitle(candidate.title, {
+      topic: input.topic,
+      templateTitle: template?.title,
+      index: candidateIdx,
+    });
+
+    let cleanDescription = ensureValidDescription(candidate.description, {
+      topic: input.topic,
+      templateTitle: template?.title,
+      topText: cleanTopText,
+      bottomText: cleanBottomText,
+      brandName: brandContext.name,
+      industry: brandContext.industry,
+    });
+
+    if (!validateSafetyAndProfanity(cleanTitle).isValid) {
+      cleanTitle = ensureValidTitle(null, {
+        topic: input.topic,
+        templateTitle: template?.title,
+        index: candidateIdx,
+      });
+    }
+
+    if (!validateSafetyAndProfanity(cleanDescription).isValid) {
+      cleanDescription = ensureValidDescription(null, {
+        topic: input.topic,
+        templateTitle: template?.title,
+        topText: cleanTopText,
+        bottomText: cleanBottomText,
+        brandName: brandContext.name,
+        industry: brandContext.industry,
+      });
+    }
+
+    candidateIdx++;
 
     const [meme] = await db
       .insert(memes)

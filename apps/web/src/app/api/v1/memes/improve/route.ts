@@ -168,25 +168,25 @@ Caption Text: ${captionSummary}`;
     if (field === "title") {
       const action = currentValue?.trim()
         ? `Improve this existing title: "${currentValue.trim()}"`
-        : "Generate a catchy, clever title (max 80 chars)";
+        : "Generate a concise 3-8 word human readable title (no quotes, no emojis, no generic words like Untitled)";
       prompt = `You are Virlio's AI meme copywriter.
 ${memeContext}
 
 Task: ${action}
 
 Return ONLY valid JSON (no markdown):
-{ "title": "<title>", "description": "", "hashtags": [] }`;
+{ "title": "<3-8 word title>", "description": "", "hashtags": [] }`;
     } else if (field === "description") {
       const action = currentValue?.trim()
         ? `Improve this existing description: "${currentValue.trim()}"`
-        : "Generate a humorous, SEO-friendly 1-2 sentence description (max 250 chars)";
+        : "Generate an informative 40-100 word SEO-friendly paragraph explaining the joke and context naturally";
       prompt = `You are Virlio's AI meme copywriter.
 ${memeContext}
 
 Task: ${action}
 
 Return ONLY valid JSON (no markdown):
-{ "title": "", "description": "<description>", "hashtags": [] }`;
+{ "title": "", "description": "<40-100 word description>", "hashtags": [] }`;
     } else if (field === "hashtags") {
       prompt = `You are Virlio's AI meme copywriter.
 ${memeContext}
@@ -197,28 +197,47 @@ Return ONLY valid JSON (no markdown):
 { "title": "", "description": "", "hashtags": ["#Tag1", "#Tag2", ...] }`;
     } else {
       // All fields at once
-      prompt = `You are Virlio's AI meme copywriter. Based on the meme details below, return a JSON object with a catchy title, a humorous 1-2 sentence description, and up to 25 relevant trending hashtags (including the # prefix).
+      prompt = `You are Virlio's AI meme copywriter. Based on the meme details below, return a JSON object with a concise 3-8 word title, an informative 40-100 word SEO-friendly description, and up to 25 relevant trending hashtags (including the # prefix).
 
 ${memeContext}
 
 Return ONLY valid JSON (no markdown, no prose):
 {
-  "title": "<catchy title, max 80 chars>",
-  "description": "<humorous, SEO-friendly description, max 250 chars>",
+  "title": "<3-8 word title>",
+  "description": "<40-100 word SEO description>",
   "hashtags": ["#Tag1", "#Tag2", ...]
 }`;
     }
 
     const result = await callLLMForImprovement(prompt);
 
-    // Safety filter AI output
     const { validateSafetyAndProfanity } = await import("@/lib/validations/safety-filter");
-    if (result.title && !validateSafetyAndProfanity(result.title).isValid) {
-      result.title = "Branded Meme";
+    const { ensureValidTitle, ensureValidDescription } = await import("@/server/services/meme-engine/meme-metadata.service");
+
+    if (result.title) {
+      result.title = ensureValidTitle(result.title, { topic: meme.prompt || "Branded Meme", templateTitle });
+      if (!validateSafetyAndProfanity(result.title).isValid) {
+        result.title = ensureValidTitle(null, { topic: meme.prompt || "Branded Meme", templateTitle });
+      }
     }
-    if (result.description && !validateSafetyAndProfanity(result.description).isValid) {
-      result.description = "A custom branded meme built with Virlio AI.";
+
+    if (result.description) {
+      result.description = ensureValidDescription(result.description, {
+        topic: meme.prompt || "Branded Meme",
+        templateTitle,
+        topText: meme.top_text,
+        bottomText: meme.bottom_text,
+      });
+      if (!validateSafetyAndProfanity(result.description).isValid) {
+        result.description = ensureValidDescription(null, {
+          topic: meme.prompt || "Branded Meme",
+          templateTitle,
+          topText: meme.top_text,
+          bottomText: meme.bottom_text,
+        });
+      }
     }
+
     result.hashtags = (result.hashtags || [])
       .slice(0, 25)
       .filter((tag) => validateSafetyAndProfanity(tag).isValid);

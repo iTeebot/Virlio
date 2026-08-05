@@ -241,6 +241,8 @@ export default function BrandMemeStudioPage() {
 
     for (const memeId of idsArray) {
       try {
+        const memeToSave = generationResult.memes.find((m) => m.id === memeId);
+
         const res = await fetch("/api/v1/memes", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -248,6 +250,9 @@ export default function BrandMemeStudioPage() {
             id: memeId,
             status: "accepted",
             watermark_enabled: watermarkEnabled,
+            title: memeToSave?.title || undefined,
+            description: memeToSave?.description || undefined,
+            hashtags: memeToSave?.hashtags || undefined,
           }),
         });
 
@@ -812,6 +817,53 @@ export default function BrandMemeStudioPage() {
 
                           {/* Footer options */}
                           <div className="p-3 bg-gray-50/50 border-t border-gray-100 space-y-2">
+                            {/* AI-Generated Title & Description Editable Fields */}
+                            <div className="space-y-2 pb-1">
+                              <div>
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
+                                  Title
+                                </label>
+                                <input
+                                  type="text"
+                                  value={meme.title || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setGenerationResult((prev) => {
+                                      if (!prev) return null;
+                                      return {
+                                        ...prev,
+                                        memes: prev.memes.map((m) => (m.id === meme.id ? { ...m, title: val } : m)),
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2.5 py-1 text-xs font-bold bg-white border border-gray-200 rounded-lg text-gray-900 focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Meme Title..."
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
+                                  SEO Description
+                                </label>
+                                <textarea
+                                  rows={2}
+                                  value={meme.description || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setGenerationResult((prev) => {
+                                      if (!prev) return null;
+                                      return {
+                                        ...prev,
+                                        memes: prev.memes.map((m) => (m.id === meme.id ? { ...m, description: val } : m)),
+                                      };
+                                    });
+                                  }}
+                                  className="w-full px-2.5 py-1 text-[11px] bg-white border border-gray-200 rounded-lg text-gray-800 focus:ring-1 focus:ring-blue-500 resize-none leading-relaxed"
+                                  placeholder="SEO Description..."
+                                />
+                              </div>
+                            </div>
+
                             {/* AI reasoning text */}
                             <p className="text-[10px] text-gray-500 italic leading-relaxed">
                               &ldquo;{meme.reasonSelected}&rdquo;

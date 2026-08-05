@@ -118,8 +118,8 @@ Return ONLY a valid JSON object with this exact structure:
     {
       "template_id": "exact-uuid-from-list",
       "reason_selected": "Why this template was chosen for this topic",
-      "title": "A short, catchy, funny title for this meme (max 50 chars)",
-      "description": "A short, humorous 1-2 sentence description explaining the meme context (max 150 chars)",
+      "title": "A concise, natural 3-8 word title for this meme. Must be human readable, relevant to the joke and template. NO quotes, NO emojis, NO hashtags, NO generic titles like 'Untitled' or 'Generated Meme'. (e.g. 'When Monday Meetings Attack', 'Startup Reality Check')",
+      "description": "An informative 40-100 word SEO-friendly paragraph explaining the joke and context. Mention the topic, subtle industry/audience context naturally without keyword stuffing or robotic phrasing. NO emojis, NO markdown.",
       "top_text": "Top caption text or null if layout is 'regions' or doesn't use it",
       "bottom_text": "Bottom caption text or null if layout is 'regions' or doesn't use it",
       "region_captions": { "region_id_1": "caption text 1", "region_id_2": "caption text 2" } or null,

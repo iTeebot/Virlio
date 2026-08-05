@@ -159,6 +159,35 @@ export default function BrandMemesPage() {
     }
   };
 
+  const handlePostToTikTok = async (memeId: string) => {
+    if (!currentBrand?.id) return;
+    setPublishingMemeId(memeId);
+
+    try {
+      const res = await fetch(`/api/v1/brands/${currentBrand.id}/socials/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memeId,
+          platform: "tiktok",
+          appendAttribution: true,
+        }),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        toast.success(`Published meme to TikTok (${json.data.pageName})!`, "Social Publisher");
+        await fetchMemes();
+      } else {
+        toast.error(json.error || "Failed to publish to TikTok", "Duplicate Prevention");
+      }
+    } catch {
+      toast.error("Network error publishing to TikTok", "Error");
+    } finally {
+      setPublishingMemeId(null);
+    }
+  };
+
   const handleToggleVisibility = async (id: string, currentVisibility: "public" | "private") => {
     setActionId(id);
     const newVisibility = currentVisibility === "public" ? "private" : "public";
@@ -426,6 +455,41 @@ export default function BrandMemesPage() {
                                 <Globe className="w-3.5 h-3.5 text-white" />
                               )}
                               <span>Post to Threads</span>
+                            </button>
+                          );
+                        })()}
+
+                        {/* TikTok Publishing Action */}
+                        {(() => {
+                          const tiktokHistory = pubHistory.find((h) => h.meme_id === meme.id && h.platform === "tiktok");
+
+                          if (tiktokHistory) {
+                            return (
+                              <div className="p-2 bg-gray-100 border border-gray-200 rounded-xl text-center space-y-0.5">
+                                <span className="text-[10px] font-black text-gray-900 flex items-center justify-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-black" />
+                                  Posted to TikTok ({tiktokHistory.page_name || "Account"})
+                                </span>
+                                <span className="text-[9px] text-gray-600 block">
+                                  {new Date(tiktokHistory.published_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => handlePostToTikTok(meme.id)}
+                              disabled={publishingMemeId === meme.id}
+                              className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-black hover:bg-gray-900 disabled:opacity-50 text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                            >
+                              {publishingMemeId === meme.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Share2 className="w-3.5 h-3.5" />
+                              )}
+                              <span>Post to TikTok</span>
                             </button>
                           );
                         })()}

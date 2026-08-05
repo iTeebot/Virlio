@@ -6,6 +6,7 @@ export interface PublishMemeOptions {
   caption?: string;
   tags?: string[];
   imageUrl?: string;
+  videoUrl?: string;
   appendAttribution?: boolean;
   automationId?: string;
   userId?: string;

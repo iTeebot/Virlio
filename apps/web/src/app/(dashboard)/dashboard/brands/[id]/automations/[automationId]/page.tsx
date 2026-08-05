@@ -209,6 +209,47 @@ function ThreadsNodeComponent({ data, selected }: any) {
   );
 }
 
+function TikTokNodeComponent({ data, selected }: any) {
+  return (
+    <div
+      className={`w-52 bg-white border-2 rounded-xl shadow-xs overflow-hidden select-none transition-all ${
+        selected ? "border-black ring-2 ring-gray-900/20" : "border-gray-200"
+      }`}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-2.5 !h-2.5 !bg-black !border-2 !border-white"
+      />
+
+      <div className="px-2.5 py-1.5 bg-black text-white flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Share2 className="w-3.5 h-3.5 text-white" />
+          <span className="text-[10px] font-black uppercase tracking-wider">Social Action</span>
+        </div>
+        <span className="px-1.5 py-0.2 bg-emerald-500 text-[8px] font-extrabold rounded uppercase">Live</span>
+      </div>
+
+      <div className="p-2.5 space-y-1.5">
+        <h4 className="text-[11px] font-bold text-gray-900 flex items-center gap-1">
+          <Share2 className="w-3.5 h-3.5 text-black shrink-0" />
+          <span className="truncate">Post to TikTok</span>
+        </h4>
+        <div className="text-[9px] text-gray-500 space-y-0.5 bg-gray-50 p-1.5 rounded-lg border border-gray-100 font-mono">
+          <div className="truncate">Caption: {data.captionType || "Meme Desc"}</div>
+          <div className="truncate">Tags: {data.tagsType || "Meme Tags"}</div>
+        </div>
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2.5 !h-2.5 !bg-black !border-2 !border-white"
+      />
+    </div>
+  );
+}
+
 function ArticleNodeComponent({ data, selected }: any) {
   return (
     <div
@@ -282,14 +323,14 @@ function LockedActionNodeComponent({ data, selected }: any) {
 
 const ALL_ACTION_NODES = [
   { id: "facebook", label: "Post to Facebook", implemented: true, category: "Social" },
-  { id: "x", label: "Post to X (Twitter)", implemented: false, category: "Social" },
-  { id: "linkedin", label: "Post to LinkedIn", implemented: false, category: "Social" },
   { id: "instagram", label: "Post to Instagram", implemented: true, category: "Social" },
   { id: "threads", label: "Post to Threads", implemented: true, category: "Social" },
+  { id: "tiktok", label: "Post to TikTok", implemented: true, category: "Social" },
+  { id: "x", label: "Post to X (Twitter)", implemented: false, category: "Social" },
+  { id: "linkedin", label: "Post to LinkedIn", implemented: false, category: "Social" },
   { id: "reddit", label: "Post to Reddit", implemented: false, category: "Social" },
   { id: "pinterest", label: "Post to Pinterest", implemented: false, category: "Social" },
   { id: "youtube", label: "Post to YouTube", implemented: false, category: "Social" },
-  { id: "threads", label: "Post to Threads", implemented: false, category: "Social" },
   { id: "medium", label: "Publish Medium Article", implemented: false, category: "Publishing" },
   { id: "devto", label: "Publish Dev.to Post", implemented: false, category: "Publishing" },
 ];
@@ -316,6 +357,7 @@ export default function BrandAutomationCanvasPage() {
       facebookNode: FacebookNodeComponent,
       instagramNode: CameraNodeComponent,
       threadsNode: ThreadsNodeComponent,
+      tiktokNode: TikTokNodeComponent,
       articleNode: ArticleNodeComponent,
       lockedNode: LockedActionNodeComponent,
     }),
@@ -489,6 +531,19 @@ export default function BrandAutomationCanvasPage() {
           visibility: "public",
         },
       };
+    } else if (type === "tiktokNode") {
+      newNode = {
+        id: newNodeId,
+        type: "tiktokNode",
+        position: { x: 400, y: 150 + nodes.length * 40 },
+        data: {
+          label: "Post to TikTok",
+          captionType: "use_meme_description",
+          tagsType: "use_meme_tags",
+          imageType: "generated_meme",
+          visibility: "public",
+        },
+      };
     } else if (type === "articleNode") {
       newNode = {
         id: newNodeId,
@@ -635,6 +690,18 @@ export default function BrandAutomationCanvasPage() {
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-slate-800" />
                     <span className="text-xs font-bold text-gray-900">Post to Threads</span>
+                  </div>
+                  <Plus className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAddNodeToCanvas("tiktokNode")}
+                  className="w-full p-2.5 bg-white border border-gray-200 hover:border-black rounded-xl flex items-center justify-between text-left transition-colors cursor-pointer shadow-2xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-black" />
+                    <span className="text-xs font-bold text-gray-900">Post to TikTok</span>
                   </div>
                   <Plus className="w-3.5 h-3.5 text-gray-400" />
                 </button>
@@ -861,6 +928,49 @@ export default function BrandAutomationCanvasPage() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors shadow-2xs"
                         >
                           <Plus className="w-3.5 h-3.5" /> Connect Threads
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === "tiktokNode" && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-gray-100 border border-gray-200 rounded-2xl flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-black shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-gray-900 block">TikTok Direct Publishing</span>
+                      <span className="text-[10px] text-gray-700 block">Status: Connected</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Target TikTok Account</label>
+                    {connectedPages.filter((p) => p.platform === "tiktok").length > 0 ? (
+                      <select
+                        value={
+                          connectedPages.find((p) => p.platform === "tiktok")?.page_id || ""
+                        }
+                        onChange={() => {}}
+                        className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900"
+                      >
+                        {connectedPages
+                          .filter((p) => p.platform === "tiktok")
+                          .map((p) => (
+                            <option key={p.id} value={p.page_id}>
+                              {p.page_name} (ID: {p.page_id})
+                            </option>
+                          ))}
+                      </select>
+                    ) : (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-center">
+                        <p className="text-xs font-bold text-amber-900">No TikTok account connected.</p>
+                        <Link
+                          href={`/dashboard/brands/${brandId}/socials`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-black hover:bg-gray-900 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Connect TikTok
                         </Link>
                       </div>
                     )}

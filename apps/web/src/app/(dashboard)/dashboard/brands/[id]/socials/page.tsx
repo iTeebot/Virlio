@@ -59,9 +59,8 @@ const ALL_PLATFORMS = [
   { id: "facebook", name: "Facebook Page", category: "Social", implemented: true, icon: Share2, desc: "Connect Facebook Pages managed via official Meta OAuth." },
   { id: "instagram", name: "Instagram Business", category: "Social", implemented: true, icon: Camera, desc: "Connect Instagram Business & Creator accounts linked to your Facebook Pages." },
   { id: "threads", name: "Threads Profile", category: "Social", implemented: true, icon: Globe, desc: "Connect Threads account via official Threads OAuth for automated meme publishing." },
+  { id: "tiktok", name: "TikTok Account", category: "Social", implemented: true, icon: Share2, desc: "Publish video and image memes directly to TikTok." },
   { id: "linkedin", name: "LinkedIn Company Page", category: "Social", implemented: false, desc: "Share professional branded memes on LinkedIn." },
-  { id: "x", name: "X (Twitter)", category: "Social", implemented: false, desc: "Auto-tweet memes with hashtags & media attachments." },
-  { id: "tiktok", name: "TikTok", category: "Social", implemented: false, desc: "Publish video and image memes to TikTok." },
   { id: "pinterest", name: "Pinterest Pins", category: "Social", implemented: false, desc: "Pin high resolution meme graphics to brand boards." },
   { id: "youtube", name: "YouTube Community", category: "Social", implemented: false, desc: "Share meme image posts to YouTube Community tab." },
   { id: "reddit", name: "Reddit Subreddit", category: "Social", implemented: false, desc: "Post memes to targeted subreddits automatically." },
@@ -184,6 +183,12 @@ export default function SocialConnectionsPage() {
   const handleConnectThreadsOAuth = () => {
     toast.info("Redirecting to Threads Login...", "Threads");
     window.location.href = `/api/v1/auth/threads/connect?brandId=${currentBrand.id}`;
+  };
+
+  // Initiate TikTok OAuth Login Flow
+  const handleConnectTikTokOAuth = () => {
+    toast.info("Redirecting to TikTok Login...", "TikTok");
+    window.location.href = `/api/v1/auth/tiktok/connect?brandId=${currentBrand.id}`;
   };
 
   // Connect Selected Discovered Facebook Page
@@ -354,6 +359,7 @@ export default function SocialConnectionsPage() {
             {connections.map((conn) => {
               const isIg = conn.platform === "instagram";
               const isThreads = conn.platform === "threads";
+              const isTikTok = conn.platform === "tiktok";
 
               return (
                 <div
@@ -376,25 +382,41 @@ export default function SocialConnectionsPage() {
                           <h4 className="text-xs font-bold text-gray-900 truncate">{conn.page_name}</h4>
                           <span
                             className={`px-1.5 py-0.5 rounded border text-[9px] font-extrabold uppercase ${
-                              isThreads
+                              isTikTok
+                                ? "bg-black text-white border-black"
+                                : isThreads
                                 ? "bg-slate-100 text-slate-800 border-slate-300"
                                 : isIg
                                 ? "bg-pink-50 text-pink-700 border-pink-200"
                                 : "bg-blue-50 text-blue-700 border-blue-200"
                             }`}
                           >
-                            {isThreads ? "Threads Profile" : isIg ? "Instagram Business" : "Facebook Page"}
+                            {isTikTok
+                              ? "TikTok Account"
+                              : isThreads
+                              ? "Threads Profile"
+                              : isIg
+                              ? "Instagram Business"
+                              : "Facebook Page"}
                           </span>
                         </div>
                         <p className="text-[10px] text-gray-400 font-mono truncate">
-                          {isThreads ? `Threads ID: ${conn.page_id}` : isIg ? `IG ID: ${conn.page_id}` : `Page ID: ${conn.page_id}`}
+                          {isTikTok
+                            ? `TikTok ID: ${conn.page_id}`
+                            : isThreads
+                            ? `Threads ID: ${conn.page_id}`
+                            : isIg
+                            ? `IG ID: ${conn.page_id}`
+                            : `Page ID: ${conn.page_id}`}
                         </p>
                       </div>
                     </div>
 
                     <a
                       href={
-                        isThreads
+                        isTikTok
+                          ? `https://www.tiktok.com/${conn.page_name}`
+                          : isThreads
                           ? `https://www.threads.net/${conn.page_name.replace("@", "")}`
                           : isIg
                           ? `https://instagram.com/${conn.page_name.replace("@", "")}`
@@ -403,7 +425,7 @@ export default function SocialConnectionsPage() {
                       target="_blank"
                       rel="noreferrer"
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
-                      title={isIg ? "View Instagram Profile" : "View Facebook Page"}
+                      title={isTikTok ? "View TikTok Profile" : isIg ? "View Instagram Profile" : "View Facebook Page"}
                     >
                       <ExternalLink className="w-4 h-4" />
                     </a>
@@ -416,7 +438,9 @@ export default function SocialConnectionsPage() {
                       <button
                         type="button"
                         onClick={
-                          isThreads
+                          isTikTok
+                            ? handleConnectTikTokOAuth
+                            : isThreads
                             ? handleConnectThreadsOAuth
                             : isIg
                             ? handleConnectInstagramOAuth
@@ -430,7 +454,18 @@ export default function SocialConnectionsPage() {
 
                       <button
                         type="button"
-                        onClick={() => handleDisconnect(conn.id, isThreads ? "Threads Profile" : isIg ? "Instagram Account" : "Facebook Page")}
+                        onClick={() =>
+                          handleDisconnect(
+                            conn.id,
+                            isTikTok
+                              ? "TikTok Account"
+                              : isThreads
+                              ? "Threads Profile"
+                              : isIg
+                              ? "Instagram Account"
+                              : "Facebook Page"
+                          )
+                        }
                         disabled={disconnectingId === conn.id}
                         className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg border border-gray-200 flex items-center gap-1 text-[11px] font-bold cursor-pointer"
                         title="Disconnect Connection"
@@ -765,7 +800,16 @@ export default function SocialConnectionsPage() {
                           <CheckCircle2 className="w-3.5 h-3.5" /> Connected
                         </span>
                       )}
-                      {platform.id === "threads" ? (
+                      {platform.id === "tiktok" ? (
+                        <button
+                          type="button"
+                          onClick={handleConnectTikTokOAuth}
+                          className="w-full py-2 bg-black hover:bg-gray-900 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{isConnected ? "+ Connect Another TikTok" : "Connect TikTok"}</span>
+                        </button>
+                      ) : platform.id === "threads" ? (
                         <button
                           type="button"
                           onClick={handleConnectThreadsOAuth}

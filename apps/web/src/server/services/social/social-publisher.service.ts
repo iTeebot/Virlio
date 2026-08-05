@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { facebookAdapter } from "./adapters/facebook.adapter";
 import { instagramAdapter } from "./adapters/instagram.adapter";
 import { threadsAdapter } from "./adapters/threads.adapter";
+import { tiktokAdapter } from "./adapters/tiktok.adapter";
 import { BaseSocialAdapter } from "./adapters/base-social.adapter";
 
 export interface PublishMemeRequest {
@@ -27,6 +28,7 @@ export class SocialPublisherService {
     this.registerAdapter(facebookAdapter);
     this.registerAdapter(instagramAdapter);
     this.registerAdapter(threadsAdapter);
+    this.registerAdapter(tiktokAdapter);
   }
 
   registerAdapter(adapter: BaseSocialAdapter) {

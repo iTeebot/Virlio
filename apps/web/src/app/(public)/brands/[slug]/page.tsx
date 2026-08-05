@@ -124,7 +124,7 @@ export default function BrandDetailPage() {
               <Building2 className="w-16 h-16 text-slate-800" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+          <div className="absolute inset-0 bg-black/40" />
         </div>
 
         {/* Brand Card Content Container */}

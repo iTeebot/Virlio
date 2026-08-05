@@ -12,4 +12,5 @@ export * from "./template_moderation";
 export * from "./activity";
 export * from "./stats";
 export * from "./storage";
+export * from "./automations";
 export * from "./relations";

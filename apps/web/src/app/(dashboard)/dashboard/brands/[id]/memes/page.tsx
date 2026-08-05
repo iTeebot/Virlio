@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useBrand } from "@/components/dashboard/brand-context";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { toast } from "@/components/ui/toast";
 import {
   Flame,
   Loader2,
@@ -12,6 +13,8 @@ import {
   ExternalLink,
   RotateCw,
   Sparkles,
+  Share2,
+  CheckCircle2,
 } from "lucide-react";
 
 interface MemeItem {
@@ -31,21 +34,31 @@ interface MemeItem {
 export default function BrandMemesPage() {
   const { currentBrand } = useBrand();
   const [memesList, setMemesList] = useState<MemeItem[]>([]);
+  const [pubHistory, setPubHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [publishingMemeId, setPublishingMemeId] = useState<string | null>(null);
 
   const fetchMemes = async () => {
     if (!currentBrand?.id) return;
     try {
       setLoading(true);
-      const res = await fetch(`/api/v1/memes?brandId=${currentBrand.id}`);
+      const [res, historyRes] = await Promise.all([
+        fetch(`/api/v1/memes?brandId=${currentBrand.id}`),
+        fetch(`/api/v1/brands/${currentBrand.id}/socials/history`),
+      ]);
+
       if (res.ok) {
         const json = await res.json();
-        // Filter out rejected memes or drafts that don't have rendered images
         const accepted = (json.data || []).filter(
           (m: MemeItem) => m.status === "accepted" && m.cloudinary_secure_url
         );
         setMemesList(accepted);
+      }
+
+      if (historyRes.ok) {
+        const historyJson = await historyRes.json();
+        setPubHistory(historyJson.data || []);
       }
     } catch (err) {
       console.error("Failed to load memes:", err);
@@ -57,6 +70,35 @@ export default function BrandMemesPage() {
   useEffect(() => {
     fetchMemes();
   }, [currentBrand?.id]);
+
+  const handlePostToFacebook = async (memeId: string) => {
+    if (!currentBrand?.id) return;
+    setPublishingMemeId(memeId);
+
+    try {
+      const res = await fetch(`/api/v1/brands/${currentBrand.id}/socials/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memeId,
+          platform: "facebook",
+          appendAttribution: true,
+        }),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        toast.success(`Published meme to Facebook Page (${json.data.pageName})!`, "Social Publisher");
+        await fetchMemes();
+      } else {
+        toast.error(json.error || "Failed to publish to Facebook", "Duplicate Prevention");
+      }
+    } catch {
+      toast.error("Network error publishing to Facebook", "Error");
+    } finally {
+      setPublishingMemeId(null);
+    }
+  };
 
   const handleToggleVisibility = async (id: string, currentVisibility: "public" | "private") => {
     setActionId(id);
@@ -221,38 +263,74 @@ export default function BrandMemesPage() {
                       )}
                     </div>
 
-                    {/* Manage Actions */}
-                    <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
-                      <button
-                        onClick={() => handleToggleVisibility(meme.id, meme.visibility)}
-                        disabled={isProcessing}
-                        className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
-                          isPublic
-                            ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200"
-                            : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
-                        }`}
-                      >
-                        {isPublic ? (
-                          <>
-                            <EyeOff className="w-3.5 h-3.5" />
-                            <span>Make Private</span>
-                          </>
-                        ) : (
-                          <>
-                            <Globe className="w-3.5 h-3.5" />
-                            <span>Publish Feed</span>
-                          </>
-                        )}
-                      </button>
+                    {/* Social Publishing & Manage Actions */}
+                    <div className="pt-3 border-t border-gray-100 space-y-2">
+                      {(() => {
+                        const historyItem = pubHistory.find((h) => h.meme_id === meme.id && h.platform === "facebook");
 
-                      <button
-                        onClick={() => handleDeleteMeme(meme.id)}
-                        disabled={isProcessing}
-                        className="inline-flex items-center justify-center p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 cursor-pointer transition-colors"
-                        title="Delete Meme"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        if (historyItem) {
+                          return (
+                            <div className="p-2.5 bg-blue-50 border border-blue-100 rounded-xl text-center space-y-0.5">
+                              <span className="text-[10px] font-black text-blue-900 flex items-center justify-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                                Already Posted to {historyItem.page_name || "Facebook"}
+                              </span>
+                              <span className="text-[9px] text-blue-700 block">
+                                Posted on {new Date(historyItem.published_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => handlePostToFacebook(meme.id)}
+                            disabled={publishingMemeId === meme.id}
+                            className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                          >
+                            {publishingMemeId === meme.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Share2 className="w-3.5 h-3.5" />
+                            )}
+                            <span>Post to Facebook</span>
+                          </button>
+                        );
+                      })()}
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={() => handleToggleVisibility(meme.id, meme.visibility)}
+                          disabled={isProcessing}
+                          className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
+                            isPublic
+                              ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200"
+                              : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
+                          }`}
+                        >
+                          {isPublic ? (
+                            <>
+                              <EyeOff className="w-3.5 h-3.5" />
+                              <span>Make Private</span>
+                            </>
+                          ) : (
+                            <>
+                              <Globe className="w-3.5 h-3.5" />
+                              <span>Publish Feed</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteMeme(meme.id)}
+                          disabled={isProcessing}
+                          className="inline-flex items-center justify-center p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 cursor-pointer transition-colors"
+                          title="Delete Meme"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

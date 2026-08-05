@@ -194,11 +194,11 @@ export default function BrandMediaPage() {
               {bannerUrl ? (
                 <img src={bannerUrl} alt="Cover Banner Preview" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-r from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center text-slate-500 text-xs font-semibold">
+                <div className="w-full h-full bg-slate-950 flex items-center justify-center text-slate-500 text-xs font-semibold">
                   No Cover Banner Uploaded
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+              <div className="absolute inset-0 bg-black/30" />
             </div>
 
             {/* Profile Info Overlay */}

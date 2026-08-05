@@ -21,10 +21,11 @@ export class ThreadsOAuthService {
 
   /**
    * Constructs official Threads OAuth 2.0 Authorization URL
+   * Scopes: threads_basic (profile & media read) + threads_content_publish (publishing)
    */
   getAuthorizationUrl(brandId: string, redirectUri: string): string {
     const state = Buffer.from(JSON.stringify({ brandId, ts: Date.now() })).toString("base64url");
-    const scopes = ["threads_basic", "threads_content_publish", "threads_profile_discovery"].join(",");
+    const scopes = ["threads_basic", "threads_content_publish"].join(",");
 
     const params = new URLSearchParams({
       client_id: this.appId,
@@ -49,23 +50,15 @@ export class ThreadsOAuthService {
     formData.append("redirect_uri", redirectUri);
     formData.append("code", code);
 
-    // Attempt A: graph.threads.net/oauth/access_token
-    let res = await fetch("https://graph.threads.net/oauth/access_token", {
+    const res = await fetch("https://graph.threads.net/oauth/access_token", {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData.toString(),
     });
-    let data = await res.json();
 
-    // Fallback Attempt B: graph.facebook.com/v14.0/oauth/access_token
-    if (data.error || data.error_message) {
-      console.warn("[Threads Token Exchange Attempt A failed, trying graph.facebook.com fallback]:", data);
-      res = await fetch("https://graph.facebook.com/v14.0/oauth/access_token", {
-        method: "POST",
-        body: formData,
-      });
-      data = await res.json();
-    }
-
+    const data = await res.json();
     if (data.error || data.error_message) {
       console.error("[Threads Token Exchange Error]:", data);
       throw new Error(data.error_message || data.error?.message || "Failed to exchange Threads authorization code.");
@@ -73,7 +66,7 @@ export class ThreadsOAuthService {
 
     return {
       access_token: data.access_token,
-      user_id: data.user_id || data.user_id_str || "",
+      user_id: String(data.user_id || data.user_id_str || ""),
     };
   }
 
@@ -82,22 +75,13 @@ export class ThreadsOAuthService {
    */
   async exchangeForLongLivedToken(shortToken: string): Promise<string> {
     try {
-      let url = `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${this.appSecret}&access_token=${shortToken}`;
-      let res = await fetch(url);
-      let data = await res.json();
+      const url = `https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=${this.appSecret}&access_token=${shortToken}`;
+      const res = await fetch(url);
+      const data = await res.json();
 
       if (data.access_token) {
         return data.access_token;
       }
-
-      // Fallback: graph.facebook.com/v14.0/access_token
-      url = `https://graph.facebook.com/v14.0/access_token?grant_type=th_exchange_token&client_secret=${this.appSecret}&access_token=${shortToken}`;
-      res = await fetch(url);
-      data = await res.json();
-      if (data.access_token) {
-        return data.access_token;
-      }
-
       return shortToken;
     } catch (err) {
       console.warn("[Threads Long-Lived Token Exchange Warning]:", err);
@@ -106,66 +90,29 @@ export class ThreadsOAuthService {
   }
 
   /**
-   * Retrieves authenticated Threads user profile gracefully
+   * Retrieves authenticated Threads user profile
+   * Uses exact threads_basic fields: id, username, threads_profile_picture_url
    */
   async getProfile(accessToken: string, defaultUserId?: string): Promise<ThreadsUserProfile> {
-    // Attempt 1: Bearer Header query to /v1.0/me
-    try {
-      const res = await fetch(`https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const data = await res.json();
-
-      if (data.id && (data.username || data.name)) {
-        return {
-          id: data.id,
-          username: data.username || data.name,
-          threads_profile_picture_url: data.threads_profile_picture_url || undefined,
-        };
-      }
-    } catch (e) {
-      console.warn("[Threads getProfile Attempt 1 Failed]:", e);
-    }
-
-    // Attempt 2: Query param query to /v1.0/me
     try {
       const res = await fetch(
-        `https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url&access_token=${accessToken}`
+        `https://graph.threads.net/v1.0/me?fields=id,username,threads_profile_picture_url&access_token=${accessToken}`
       );
       const data = await res.json();
 
-      if (data.id && (data.username || data.name)) {
+      console.log("[Threads Profile Raw API Response]:", data);
+
+      if (data.id && data.username) {
         return {
-          id: data.id,
-          username: data.username || data.name,
+          id: String(data.id),
+          username: String(data.username),
           threads_profile_picture_url: data.threads_profile_picture_url || undefined,
         };
       }
     } catch (e) {
-      console.warn("[Threads getProfile Attempt 2 Failed]:", e);
+      console.warn("[Threads getProfile Failed]:", e);
     }
 
-    // Attempt 3: Query graph.threads.net/v1.0/${defaultUserId} by explicit user ID
-    if (defaultUserId && !defaultUserId.startsWith("th_")) {
-      try {
-        const res = await fetch(
-          `https://graph.threads.net/v1.0/${defaultUserId}?fields=id,username,name,threads_profile_picture_url&access_token=${accessToken}`
-        );
-        const data = await res.json();
-
-        if (data.id && (data.username || data.name)) {
-          return {
-            id: data.id,
-            username: data.username || data.name,
-            threads_profile_picture_url: data.threads_profile_picture_url || undefined,
-          };
-        }
-      } catch (e) {
-        console.warn("[Threads getProfile Attempt 3 Failed]:", e);
-      }
-    }
-
-    // Fallback: Use defaultUserId from token exchange
     const fallbackId = defaultUserId || `th_default`;
     return {
       id: fallbackId,
@@ -238,7 +185,7 @@ export class ThreadsOAuthService {
         access_token: encryptedToken,
         connected_by: userId || null,
         is_active: true,
-        scopes: ["threads_basic", "threads_content_publish", "threads_profile_discovery"],
+        scopes: ["threads_basic", "threads_content_publish"],
       })
       .onConflictDoUpdate({
         target: [brandSocialConnections.brand_id, brandSocialConnections.platform, brandSocialConnections.page_id],

@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { users, accounts, sessions } from "./auth";
-import { brands, brandMembers, brandDrafts, brandKnowledgeBases, brandVerifications, brandInvitations, brandAuditLogs, brandTaxonomies } from "./brands";
+import { brands, brandMembers, brandDrafts, brandKnowledgeBases, brandVerifications, brandInvitations, brandAuditLogs, brandTaxonomies, brandAiHistory } from "./brands";
 import { templates } from "./templates";
 import { memes } from "./memes";
 import { memeGenerations } from "./meme-generations";
@@ -58,6 +58,7 @@ export const brandsRelations = relations(brands, ({ one, many }) => ({
   invitations: many(brandInvitations),
   auditLogs: many(brandAuditLogs),
   memeGenerations: many(memeGenerations),
+  aiHistory: many(brandAiHistory),
 }));
 
 export const brandMembersRelations = relations(brandMembers, ({ one }) => ({
@@ -181,3 +182,9 @@ export const memeGenerationsRelations = relations(memeGenerations, ({ one }) => 
   brand: one(brands, { fields: [memeGenerations.brand_id], references: [brands.id] }),
   user: one(users, { fields: [memeGenerations.user_id], references: [users.id] }),
 }));
+
+export const brandAiHistoryRelations = relations(brandAiHistory, ({ one }) => ({
+  brand: one(brands, { fields: [brandAiHistory.brand_id], references: [brands.id] }),
+  user: one(users, { fields: [brandAiHistory.user_id], references: [users.id] }),
+}));
+

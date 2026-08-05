@@ -31,6 +31,8 @@ export const brands = pgTable("brands", {
   allow_public_profile: boolean("allow_public_profile").default(true),
   contact_email: text("contact_email"),
   support_email: text("support_email"),
+  phone: text("phone"),
+  whatsapp_phone: text("whatsapp_phone"),
   social_links: jsonb("social_links"),
   address: jsonb("address"),
   settings: jsonb("settings"),
@@ -155,5 +157,18 @@ export const brandTaxonomies = pgTable("brand_taxonomies", {
   categoryIdx: index("brand_taxonomies_category_idx").on(table.category),
   statusIdx: index("brand_taxonomies_status_idx").on(table.status),
 }));
+
+export const brandAiHistory = pgTable("brand_ai_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  brand_id: uuid("brand_id").notNull().references(() => brands.id),
+  user_id: uuid("user_id").notNull().references(() => users.id),
+  version: integer("version").default(1).notNull(),
+  knowledge_base: jsonb("knowledge_base").notNull(),
+  change_summary: text("change_summary"),
+  created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  brandAiHistoryBrandIdx: index("brand_ai_history_brand_idx").on(table.brand_id),
+}));
+
 
 

@@ -240,14 +240,40 @@ export async function getKnowledgeBase(brandId: string, userId: string) {
   return brandRepository.getKnowledgeBase(brandId);
 }
 
-export async function updateKnowledgeBase(brandId: string, userId: string, data: any) {
+export async function updateKnowledgeBase(brandId: string, userId: string, data: any, changeSummary?: string) {
   const role = await brandRepository.getUserRoleForBrand(brandId, userId);
   if (!role || !["owner", "admin", "manager"].includes(role)) {
     throw new Error("Unauthorized: Insufficient permissions to edit AI Knowledge Base");
   }
   await brandRepository.createAuditLog(brandId, userId, "UPDATE_AI_KNOWLEDGE_BASE", { updatedKeys: Object.keys(data) });
-  return brandRepository.upsertKnowledgeBase(brandId, data);
+  const updatedKb = await brandRepository.upsertKnowledgeBase(brandId, data);
+  await brandRepository.createAiHistory(brandId, userId, updatedKb, changeSummary);
+  return updatedKb;
 }
+
+export async function getKnowledgeBaseHistory(brandId: string, userId: string) {
+  const role = await brandRepository.getUserRoleForBrand(brandId, userId);
+  if (!role) throw new Error("Unauthorized: You do not have access to this brand");
+  return brandRepository.getAiHistory(brandId);
+}
+
+export async function restoreKnowledgeBaseVersion(brandId: string, userId: string, historyId: string) {
+  const role = await brandRepository.getUserRoleForBrand(brandId, userId);
+  if (!role || !["owner", "admin", "manager"].includes(role)) {
+    throw new Error("Unauthorized: Insufficient permissions to edit AI Knowledge Base");
+  }
+  const snapshot = await brandRepository.getAiHistoryById(historyId);
+  if (!snapshot || snapshot.brand_id !== brandId) {
+    throw new Error("AI History snapshot not found");
+  }
+
+  const restoredData = snapshot.knowledge_base;
+  await brandRepository.createAuditLog(brandId, userId, "RESTORE_AI_KNOWLEDGE_BASE", { version: snapshot.version });
+  const updatedKb = await brandRepository.upsertKnowledgeBase(brandId, restoredData);
+  await brandRepository.createAiHistory(brandId, userId, updatedKb, `Restored version ${snapshot.version}`);
+  return updatedKb;
+}
+
 
 /* ---------------- MEMBER & RBAC INVITATION MANAGEMENT ---------------- */
 export async function getBrandMembersAndInvites(brandId: string, userId: string) {

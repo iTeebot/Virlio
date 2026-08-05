@@ -115,24 +115,24 @@ export default function BrandDetailPage() {
       <Header />
 
       <main className="flex-1 pb-20">
-        {/* Cover Banner Header */}
-        <div className="relative w-full h-48 sm:h-64 bg-slate-900 overflow-hidden">
+        {/* Cover Banner Header - Full Height Display */}
+        <div className="relative w-full h-64 sm:h-80 md:h-[400px] bg-slate-950 overflow-hidden">
           {brand.banner_url ? (
             <img src={brand.banner_url} alt={brand.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+            <div className="w-full h-full bg-slate-950 flex items-center justify-center">
               <Building2 className="w-16 h-16 text-slate-800" />
             </div>
           )}
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
         </div>
 
         {/* Brand Card Content Container */}
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 -mt-16 relative z-10 space-y-8">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 -mt-20 sm:-mt-24 relative z-10 space-y-8">
           <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100">
-              <div className="flex items-center gap-4 sm:gap-6">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white border-2 border-gray-200 p-1 shadow-md shrink-0 flex items-center justify-center overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 pb-6 border-b border-gray-100">
+              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-white border-4 border-white shadow-xl p-1 shrink-0 flex items-center justify-center overflow-hidden -mt-16 sm:-mt-20">
                   {brand.logo_url ? (
                     <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain rounded-xl" />
                   ) : (

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useBrand } from "@/components/dashboard/brand-context";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -10,24 +10,79 @@ import {
   Globe,
   Sparkles,
   Flame,
-  Layers,
-  Share2,
-  ExternalLink,
-  MapPin,
   Clock,
   ArrowRight,
+  ExternalLink,
+  MapPin,
+  Users,
+  Eye,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
+
+function MemeThumbnail({ src, alt, caption }: { src?: string | null; alt: string; caption?: string }) {
+  const [imgError, setImgError] = useState(!src);
+
+  if (imgError || !src) {
+    return (
+      <div className="w-full h-full bg-slate-900 text-white p-2 flex flex-col items-center justify-center text-center">
+        <Flame className="w-5 h-5 text-amber-500 mb-1" />
+        <span className="text-[9px] font-bold line-clamp-2">{caption || alt}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onError={() => setImgError(true)}
+      className="w-full h-full object-cover"
+    />
+  );
+}
 
 export default function BrandOverviewPage() {
   const { currentBrand } = useBrand();
 
+  const [stats, setStats] = useState<any>(null);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadOverviewData() {
+      if (!currentBrand?.id) return;
+      try {
+        setLoading(true);
+        const [statsRes, actRes] = await Promise.all([
+          fetch(`/api/v1/brands/${currentBrand.id}/stats`),
+          fetch(`/api/v1/brands/${currentBrand.id}/activity`),
+        ]);
+
+        if (statsRes.ok) {
+          const json = await statsRes.json();
+          setStats(json.data || json);
+        }
+
+        if (actRes.ok) {
+          const json = await actRes.json();
+          setActivities(json.data || json);
+        }
+      } catch (err) {
+        console.error("Failed to load overview data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadOverviewData();
+  }, [currentBrand?.id]);
+
   if (!currentBrand) return null;
 
   const isVerified = currentBrand.verification_status === "verified";
-  const confidenceScore = currentBrand.ai_confidence_score || currentBrand.digital_presence_score || 0;
-  const settings = currentBrand.settings || {};
-  const colors = settings.colors || {};
-  const metadata = currentBrand.metadata || {};
+  const brandScore = stats?.brand_score || currentBrand.brand_score || 100;
+  const recentMemes = stats?.recent_memes || [];
 
   return (
     <div className="space-y-6">
@@ -50,11 +105,11 @@ export default function BrandOverviewPage() {
                 <h1 className="text-2xl font-black text-gray-900">{currentBrand.name}</h1>
                 {isVerified ? (
                   <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Verified • {confidenceScore} / 100 PTS
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Verified • {brandScore} / 100 PTS
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-amber-100 text-amber-900 rounded-full border border-amber-200">
-                    <Clock className="w-3.5 h-3.5 text-amber-600" /> Pending Verification • {confidenceScore} / 100 PTS
+                    <Clock className="w-3.5 h-3.5 text-amber-600" /> Pending Verification • {brandScore} / 100 PTS
                   </span>
                 )}
               </div>
@@ -80,7 +135,7 @@ export default function BrandOverviewPage() {
               href={`/dashboard/brands/${currentBrand.id}/generate`}
               className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-xs"
             >
-              <Sparkles className="w-4 h-4" /> Generate Meme
+              <Sparkles className="w-4 h-4 text-yellow-300" /> Generate Meme
             </Link>
 
             <a
@@ -95,83 +150,125 @@ export default function BrandOverviewPage() {
           </div>
         </div>
 
-        {/* Brand Details Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <span className="text-gray-400 block font-semibold">Business Type</span>
-            <span className="font-bold text-gray-900 text-sm mt-0.5 block">{settings.business_type || "Standard"}</span>
+        {/* Real Metrics Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Memes</span>
+            <span className="text-xl font-black text-gray-900">{stats?.total_memes ?? 0}</span>
           </div>
 
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <span className="text-gray-400 block font-semibold">Contact Email</span>
-            <span className="font-bold text-blue-600 text-sm mt-0.5 block truncate">
-              {currentBrand.contact_email || "Not specified"}
-            </span>
+          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Public Feed</span>
+            <span className="text-xl font-black text-emerald-600">{stats?.public_memes ?? 0}</span>
           </div>
 
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <span className="text-gray-400 block font-semibold">Website</span>
-            <span className="font-bold text-gray-900 text-sm mt-0.5 block truncate">
-              {currentBrand.website || "No website specified"}
-            </span>
+          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Views</span>
+            <span className="text-xl font-black text-blue-600">{stats?.total_views ?? 0}</span>
+          </div>
+
+          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Brand Score</span>
+            <span className="text-xl font-black text-purple-600">{brandScore}/100</span>
           </div>
         </div>
-
-        {/* Brand Palette Swatches */}
-        {colors.primary && (
-          <div className="pt-4 border-t border-gray-100 flex items-center gap-4">
-            <span className="text-xs font-bold text-gray-700">Brand Swatches:</span>
-            <div className="flex items-center gap-2">
-              {colors.primary && <div className="w-6 h-6 rounded-lg border border-gray-200 shadow-2xs" style={{ backgroundColor: colors.primary }} title={`Primary: ${colors.primary}`} />}
-              {colors.secondary && <div className="w-6 h-6 rounded-lg border border-gray-200 shadow-2xs" style={{ backgroundColor: colors.secondary }} title={`Secondary: ${colors.secondary}`} />}
-              {colors.accent && <div className="w-6 h-6 rounded-lg border border-gray-200 shadow-2xs" style={{ backgroundColor: colors.accent }} title={`Accent: ${colors.accent}`} />}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Real Content Sections with Polished Empty States */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Recent Memes Empty State */}
-        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+      {/* Real Content Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Memes Section */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between pb-4 border-b border-gray-100">
             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <Flame className="w-4 h-4 text-amber-500" /> Recent Memes
             </h3>
-            <Link href={`/dashboard/brands/${currentBrand.id}/memes`} className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-              View All <ArrowRight className="w-3.5 h-3.5" />
+            <Link
+              href={`/dashboard/brands/${currentBrand.id}/memes`}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              View Library <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <EmptyState
-            icon={Flame}
-            title="No memes generated yet"
-            description={`Start creating viral memes powered by AI for ${currentBrand.name}.`}
-            actionLabel="Generate First Meme"
-            actionHref={`/dashboard/brands/${currentBrand.id}/generate`}
-            iconColor="text-amber-500"
-          />
+          {loading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            </div>
+          ) : recentMemes.length === 0 ? (
+            <EmptyState
+              icon={Flame}
+              title="No memes generated yet"
+              description={`Start creating viral memes powered by AI for ${currentBrand.name}.`}
+              actionLabel="Generate First Meme"
+              actionHref={`/dashboard/brands/${currentBrand.id}/generate`}
+              iconColor="text-amber-500"
+            />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {recentMemes.map((meme: any) => (
+                <div key={meme.id} className="group relative aspect-square rounded-2xl overflow-hidden bg-slate-900 border border-gray-200">
+                  <MemeThumbnail
+                    src={meme.cloudinary_secure_url || meme.image_url}
+                    alt={meme.top_text || meme.bottom_text || "Branded Meme"}
+                    caption={meme.top_text || meme.bottom_text || "Branded Meme"}
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2 text-center text-[10px] font-bold text-white">
+                    {meme.top_text || meme.bottom_text || "Branded Meme"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Templates Empty State */}
-        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+        {/* Recent Activity Section */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between pb-4 border-b border-gray-100">
             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-purple-600" /> Brand Templates
+              <Clock className="w-4 h-4 text-blue-600" /> Recent Activity
             </h3>
-            <Link href={`/dashboard/brands/${currentBrand.id}/templates`} className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-              View All <ArrowRight className="w-3.5 h-3.5" />
+            <Link
+              href={`/dashboard/brands/${currentBrand.id}/activity`}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              View History <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <EmptyState
-            icon={Layers}
-            title="No templates uploaded yet"
-            description={`Upload custom meme templates branded with ${currentBrand.name}'s logo and colors.`}
-            actionLabel="Browse Templates"
-            actionHref={`/dashboard/brands/${currentBrand.id}/templates`}
-            iconColor="text-purple-600"
-          />
+          {loading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            </div>
+          ) : activities.length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title="No recent activity recorded"
+              description={`Brand events for ${currentBrand.name} will be logged here as memes are generated.`}
+              actionLabel="Generate Meme"
+              actionHref={`/dashboard/brands/${currentBrand.id}/generate`}
+              iconColor="text-blue-600"
+            />
+          ) : (
+            <div className="space-y-3">
+              {activities.slice(0, 5).map((act: any) => (
+                <div key={act.id} className="flex items-center justify-between text-xs p-3 bg-gray-50 border border-gray-100 rounded-2xl">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-gray-900 block">{act.action.replace(/_/g, " ")}</span>
+                      <span className="text-[10px] text-gray-400 block">
+                        {act.user?.name ? `By ${act.user.name}` : "System Event"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] text-gray-400 font-semibold shrink-0">
+                    {new Date(act.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

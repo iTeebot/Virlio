@@ -7,6 +7,7 @@ import {
   brandVerifications,
   brandInvitations,
   brandAuditLogs,
+  brandAiHistory,
 } from "@virlio/database/schema";
 import { eq, isNull, and, desc, inArray } from "drizzle-orm";
 import type { Brand } from "@virlio/database/types";
@@ -260,3 +261,36 @@ export async function getAuditLogs(brandId: string) {
     limit: 50,
   });
 }
+
+/* ---------------- AI HISTORY ---------------- */
+export async function createAiHistory(brandId: string, userId: string, knowledgeBase: any, changeSummary?: string) {
+  const latest = await db.query.brandAiHistory.findFirst({
+    where: eq(brandAiHistory.brand_id, brandId),
+    orderBy: [desc(brandAiHistory.version)],
+  });
+  const version = (latest?.version || 0) + 1;
+  const [history] = await db
+    .insert(brandAiHistory)
+    .values({
+      brand_id: brandId,
+      user_id: userId,
+      version,
+      knowledge_base: knowledgeBase,
+      change_summary: changeSummary || `Updated AI Knowledge Base (v${version})`,
+    })
+    .returning();
+  return history;
+}
+
+export async function getAiHistory(brandId: string) {
+  return db.query.brandAiHistory.findMany({
+    where: eq(brandAiHistory.brand_id, brandId),
+    with: { user: { columns: { id: true, name: true, image: true, username: true } } },
+    orderBy: [desc(brandAiHistory.version)],
+  });
+}
+
+export async function getAiHistoryById(historyId: string) {
+  return (await db.query.brandAiHistory.findFirst({ where: eq(brandAiHistory.id, historyId) })) || null;
+}
+

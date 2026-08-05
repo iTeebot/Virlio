@@ -8,6 +8,7 @@ interface BrandContextType {
   userBrands: any[];
   loading: boolean;
   switchBrand: (targetBrandId: string) => void;
+  refreshBrands: () => void;
 }
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
@@ -35,6 +36,10 @@ export function BrandProvider({
     setUserBrands(initialUserBrands);
   }, [initialUserBrands]);
 
+  const refreshBrands = () => {
+    router.refresh();
+  };
+
   const switchBrand = (targetBrandId: string) => {
     if (!targetBrandId || targetBrandId === currentBrand?.id) return;
 
@@ -58,6 +63,7 @@ export function BrandProvider({
         userBrands,
         loading,
         switchBrand,
+        refreshBrands,
       }}
     >
       {children}
@@ -73,7 +79,9 @@ export function useBrand() {
       userBrands: [],
       loading: false,
       switchBrand: () => {},
+      refreshBrands: () => {},
     };
   }
   return context;
 }
+

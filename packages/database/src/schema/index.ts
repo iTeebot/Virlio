@@ -3,6 +3,7 @@ export * from "./auth";
 export * from "./brands";
 export * from "./templates";
 export * from "./memes";
+export * from "./meme-generations";
 export * from "./engagement";
 export * from "./social";
 export * from "./gamification";

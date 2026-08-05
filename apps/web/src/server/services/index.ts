@@ -14,4 +14,6 @@ export * as storageService from "./storage.service";
 export * as exploreService from "./explore.service";
 export * as authorizationService from "./authorization.service";
 export * from "./xp-engine.service";
-
+export * as memeEngineService from "./meme-engine/meme-engine.service";
+export * as memeRendererService from "./meme-engine/meme-renderer.service";
+export * as generationAnalytics from "./meme-engine/generation-analytics";

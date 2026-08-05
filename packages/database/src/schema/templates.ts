@@ -54,6 +54,9 @@ export const templates = pgTable("templates", {
   ocr_text: text("ocr_text"),
   ocr_confidence: integer("ocr_confidence").default(0),
   ocr_language: text("ocr_language"),
+  // AI Generation Profile (determined once during template approval)
+  text_layout: text("text_layout").default("top_bottom"),
+  ai_generation_profile: jsonb("ai_generation_profile"),
   // Scores
   quality_score: integer("quality_score").default(0),
   risk_score: integer("risk_score").default(0),

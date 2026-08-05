@@ -743,7 +743,9 @@ function UserPublicProfileContent() {
                     </p>
                     <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
                       {featuredBrand.industry && <span>Industry: {featuredBrand.industry}</span>}
-                      <span>Brand Score: {featuredBrand.brand_score}/100</span>
+                      {(featuredBrand.brand_score ?? 0) > 0 && (
+                        <span>Brand Score: {featuredBrand.brand_score}/100</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -794,7 +796,12 @@ function UserPublicProfileContent() {
                     </div>
 
                     <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                      <span className="text-gray-500 font-medium">Brand Score: <strong className="text-gray-900">{b.brand_score}/100</strong></span>
+                      <span className="text-gray-500 font-medium">
+                        Brand Score:{" "}
+                        <strong className="text-gray-900">
+                          {(b.brand_score ?? 0) > 0 ? `${b.brand_score}/100` : "—"}
+                        </strong>
+                      </span>
                       <Link href={`/brands/${b.slug}`} className="text-blue-600 hover:underline font-bold flex items-center gap-1">
                         <span>View</span>
                         <ExternalLink className="w-3 h-3" />
@@ -883,13 +890,13 @@ function UserPublicProfileContent() {
                     {publicMemes.map((m) => (
                       <div key={m.id} className="virlio-card p-4 bg-white border border-gray-200 rounded-3xl space-y-3">
                         <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
-                          {m.image_url ? (
-                            <Image src={m.image_url} alt={m.title || "Meme"} fill className="object-cover" />
+                          {(m.cloudinary_secure_url || m.image_url) ? (
+                            <Image src={m.cloudinary_secure_url || m.image_url} alt={m.title || m.top_text || "Meme"} fill className="object-cover" />
                           ) : (
                             <div className="flex items-center justify-center h-full text-xs text-gray-400">No Image</div>
                           )}
                         </div>
-                        <h4 className="text-xs font-bold text-gray-900 truncate">{m.title || m.top_text || "Untitled Meme"}</h4>
+                        <h4 className="text-xs font-bold text-gray-900 truncate">{m.title || m.top_text || m.bottom_text || "Untitled Meme"}</h4>
                         <div className="flex items-center justify-between text-[11px] text-gray-500">
                           <span className="flex items-center gap-1 text-blue-600 font-semibold"><ThumbsUp className="w-3 h-3" /> {m.upvotes_count || 0}</span>
                           <span>{new Date(m.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>

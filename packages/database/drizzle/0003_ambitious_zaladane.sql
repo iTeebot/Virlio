@@ -1,0 +1,1 @@
+ALTER TABLE "memes" ADD COLUMN "region_captions" jsonb;

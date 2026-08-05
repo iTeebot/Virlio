@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, uuid, index, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, uuid, index, jsonb, boolean } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { brands } from "./brands";
 import { templates } from "./templates";
@@ -23,6 +23,23 @@ export const memes = pgTable("memes", {
   generation_model: text("generation_model"),
   generation_cost_cents: integer("generation_cost_cents"),
   generation_duration_ms: integer("generation_duration_ms"),
+  // AI Meme Engine fields
+  generation_id: uuid("generation_id"),
+  prompt_version: text("prompt_version"),
+  title: text("title"),
+  description: text("description"),
+  top_text: text("top_text"),
+  bottom_text: text("bottom_text"),
+  region_captions: jsonb("region_captions"),
+  text_layout: text("text_layout").default("top_bottom"),
+  ai_confidence: integer("ai_confidence"),
+  ai_reasoning: text("ai_reasoning"),
+  ai_tone: text("ai_tone"),
+  status: text("status").default("draft"),
+  retry_count: integer("retry_count").default(0),
+  fallback_count: integer("fallback_count").default(0),
+  token_usage: integer("token_usage"),
+  watermark_enabled: boolean("watermark_enabled").default(true),
   generation_timestamp: timestamp("generation_timestamp", { mode: "date", withTimezone: true }),
   engagement_score: integer("engagement_score").default(0),
   approval_status: moderationStatusEnum("approval_status").default("pending"),
@@ -44,4 +61,6 @@ export const memes = pgTable("memes", {
   generatorIdIdx: index("memes_generator_id_idx").on(table.generator_id),
   visibilityIdx: index("memes_visibility_idx").on(table.visibility),
   engagementScoreIdx: index("memes_engagement_score_idx").on(table.engagement_score),
+  generationIdIdx: index("memes_generation_id_idx").on(table.generation_id),
+  statusIdx: index("memes_status_idx").on(table.status),
 }));

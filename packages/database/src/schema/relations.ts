@@ -3,6 +3,7 @@ import { users, accounts, sessions } from "./auth";
 import { brands, brandMembers, brandDrafts, brandKnowledgeBases, brandVerifications, brandInvitations, brandAuditLogs, brandTaxonomies } from "./brands";
 import { templates } from "./templates";
 import { memes } from "./memes";
+import { memeGenerations } from "./meme-generations";
 import { comments, votes, bookmarks } from "./engagement";
 import { follows } from "./social";
 import { badges, userBadges, brandBadges, achievements, userAchievements, streaks, xpEvents, userLevels } from "./gamification";
@@ -35,6 +36,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   userStats: one(userStats, { fields: [users.id], references: [userStats.user_id] }),
   assets: many(cloudAssets),
   drafts: many(brandDrafts),
+  memeGenerations: many(memeGenerations),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -55,6 +57,7 @@ export const brandsRelations = relations(brands, ({ one, many }) => ({
   verification: one(brandVerifications, { fields: [brands.id], references: [brandVerifications.brand_id] }),
   invitations: many(brandInvitations),
   auditLogs: many(brandAuditLogs),
+  memeGenerations: many(memeGenerations),
 }));
 
 export const brandMembersRelations = relations(brandMembers, ({ one }) => ({
@@ -172,4 +175,9 @@ export const brandStatsRelations = relations(brandStats, ({ one }) => ({
 
 export const cloudAssetsRelations = relations(cloudAssets, ({ one }) => ({
   owner: one(users, { fields: [cloudAssets.owner_id], references: [users.id] }),
+}));
+
+export const memeGenerationsRelations = relations(memeGenerations, ({ one }) => ({
+  brand: one(brands, { fields: [memeGenerations.brand_id], references: [brands.id] }),
+  user: one(users, { fields: [memeGenerations.user_id], references: [users.id] }),
 }));

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@virlio/database";
 import { memes, templates, activities } from "@virlio/database/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { userRepository } from "@/server/repositories";
 import { userStatsEngine } from "@/server/services/user-stats-engine.service";
 import { withErrorHandling } from "@/lib/server/api-wrapper";
@@ -39,14 +39,22 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
 
     // Public Memes Generated
     const publicMemes = (await db.query.memes.findMany({
-      where: and(eq(memes.generator_id, userId), eq(memes.visibility, "public")),
+      where: and(
+        eq(memes.generator_id, userId),
+        eq(memes.visibility, "public"),
+        isNull(memes.deleted_at)
+      ),
       limit: 12,
       orderBy: desc(memes.created_at),
     }).catch(() => [])) || [];
 
     // Public Templates Uploaded
     const publicTemplates = (await db.query.templates.findMany({
-      where: and(eq(templates.uploaded_by, userId), eq(templates.moderation_status, "approved")),
+      where: and(
+        eq(templates.uploaded_by, userId),
+        eq(templates.moderation_status, "approved"),
+        isNull(templates.deleted_at)
+      ),
       limit: 12,
       orderBy: desc(templates.created_at),
     }).catch(() => [])) || [];

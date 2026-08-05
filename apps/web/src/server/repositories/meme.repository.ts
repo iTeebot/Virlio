@@ -10,6 +10,23 @@ export async function findById(id: string) {
 export async function findByBrand(brandId: string, options: { limit?: number; offset?: number } = {}) {
   return db.query.memes.findMany({
     where: and(eq(memes.brand_id, brandId), isNull(memes.deleted_at)),
+    with: {
+      brand: {
+        columns: {
+          name: true,
+          slug: true,
+          logo_url: true,
+          verification_status: true,
+        }
+      },
+      generator: {
+        columns: {
+          username: true,
+          name: true,
+          image: true,
+        }
+      }
+    },
     limit: options.limit || 10,
     offset: options.offset || 0,
     orderBy: desc(memes.created_at),
@@ -28,6 +45,23 @@ export async function findByTemplate(templateId: string, options: { limit?: numb
 export async function findPublicMemes(options: { limit?: number; offset?: number } = {}) {
   return db.query.memes.findMany({
     where: and(isNull(memes.deleted_at), eq(memes.visibility, "public")),
+    with: {
+      brand: {
+        columns: {
+          name: true,
+          slug: true,
+          logo_url: true,
+          verification_status: true,
+        }
+      },
+      generator: {
+        columns: {
+          username: true,
+          name: true,
+          image: true,
+        }
+      }
+    },
     limit: options.limit || 10,
     offset: options.offset || 0,
     orderBy: desc(memes.created_at),

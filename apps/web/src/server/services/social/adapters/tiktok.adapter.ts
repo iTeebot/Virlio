@@ -27,16 +27,30 @@ export class TikTokAdapter implements BaseSocialAdapter {
 
       const accessToken = decryptToken(rawToken);
 
+      // Proxy external Cloudinary URLs through virlio.iteebot.com for TikTok Domain Verification compliance
+      const appBaseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://virlio.iteebot.com").replace(/\/$/, "");
+      
+      let proxiedImageUrl = imageUrl;
+      let proxiedVideoUrl = videoUrl;
+
+      if (imageUrl && !imageUrl.includes("/api/v1/media/proxy")) {
+        proxiedImageUrl = `${appBaseUrl}/api/v1/media/proxy?url=${encodeURIComponent(imageUrl)}`;
+      }
+
+      if (videoUrl && !videoUrl.includes("/api/v1/media/proxy")) {
+        proxiedVideoUrl = `${appBaseUrl}/api/v1/media/proxy?url=${encodeURIComponent(videoUrl)}`;
+      }
+
       // 1. Build TikTok caption with hashtags & attribution
-      let finalCaption = caption.trim();
+      let mainText = caption.trim() || "Branded Meme generated with Virlio";
 
       if (tags.length > 0) {
         const hashtagsText = tags.map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ");
-        finalCaption += `\n\n${hashtagsText}`;
+        mainText += `\n\n${hashtagsText}`;
       }
 
       if (appendAttribution) {
-        finalCaption += `\n\nGenerated with Virlio\nhttps://virlio.iteebot.com`;
+        mainText += `\n\nGenerated with Virlio\nhttps://virlio.iteebot.com`;
       }
 
       const isMockToken =
@@ -46,9 +60,9 @@ export class TikTokAdapter implements BaseSocialAdapter {
 
       // 2. Perform direct posting via official TikTok Content Posting API v2 if token is real
       if (!isMockToken) {
-        const isVideo = Boolean(videoUrl && videoUrl.endsWith(".mp4"));
+        const isVideo = Boolean(proxiedVideoUrl && (proxiedVideoUrl.endsWith(".mp4") || proxiedVideoUrl.endsWith(".mov")));
 
-        if (isVideo) {
+        if (isVideo && proxiedVideoUrl) {
           // Direct Post Video Init
           const res = await fetch("https://open.tiktokapis.com/v2/post/publish/video/init/", {
             method: "POST",
@@ -58,7 +72,7 @@ export class TikTokAdapter implements BaseSocialAdapter {
             },
             body: JSON.stringify({
               post_info: {
-                title: finalCaption.slice(0, 2200),
+                title: mainText.slice(0, 2200),
                 privacy_level: "SELF_ONLY",
                 disable_duet: false,
                 disable_comment: false,
@@ -67,13 +81,15 @@ export class TikTokAdapter implements BaseSocialAdapter {
               },
               source_info: {
                 source: "PULL_FROM_URL",
-                video_url: videoUrl,
+                video_url: proxiedVideoUrl,
               },
             }),
           });
 
           const data = await res.json();
-          if (data.error || data.error_code || data.error?.code) {
+          console.log("[TikTok Direct Video Post Response]:", data);
+
+          if (data.error || data.error_code || (data.error?.code && data.error?.code !== "ok")) {
             const msg = data.error?.message || data.message || "Failed to initialize TikTok video post.";
             console.error("[TikTok Direct Video Post Error]:", data);
             return { success: false, error: msg };
@@ -85,8 +101,8 @@ export class TikTokAdapter implements BaseSocialAdapter {
             externalPostId: publishId,
             postUrl: `https://www.tiktok.com/@creator/video/${publishId}`,
           };
-        } else {
-          // Direct Post Photo Mode Init
+        } else if (proxiedImageUrl) {
+          // Direct Post Photo Mode Init per TikTok official spec
           const res = await fetch("https://open.tiktokapis.com/v2/post/publish/content/init/", {
             method: "POST",
             headers: {
@@ -95,13 +111,16 @@ export class TikTokAdapter implements BaseSocialAdapter {
             },
             body: JSON.stringify({
               post_info: {
-                title: finalCaption.slice(0, 2200),
+                title: mainText.slice(0, 90),
+                description: mainText.slice(0, 2200),
                 privacy_level: "SELF_ONLY",
                 disable_comment: false,
+                auto_add_music: true,
               },
               source_info: {
                 source: "PULL_FROM_URL",
-                photo_images: [imageUrl],
+                photo_cover_index: 1,
+                photo_images: [proxiedImageUrl],
               },
               post_mode: "DIRECT_POST",
               media_type: "PHOTO",
@@ -109,7 +128,9 @@ export class TikTokAdapter implements BaseSocialAdapter {
           });
 
           const data = await res.json();
-          if (data.error || data.error_code || data.error?.code) {
+          console.log("[TikTok Direct Photo Post Response]:", data);
+
+          if (data.error || data.error_code || (data.error?.code && data.error?.code !== "ok")) {
             const msg = data.error?.message || data.message || "Failed to initialize TikTok photo post.";
             console.error("[TikTok Direct Photo Post Error]:", data);
             return { success: false, error: msg };
@@ -129,7 +150,7 @@ export class TikTokAdapter implements BaseSocialAdapter {
       return {
         success: true,
         externalPostId: mockPostId,
-        postUrl: `https://www.tiktok.com/@creator/video/${mockPostId}`,
+        postUrl: `https://www.tiktok.com/@creator/photo/${mockPostId}`,
       };
     } catch (err: any) {
       console.error("[TikTok Adapter Exception]:", err);

@@ -22,11 +22,11 @@ export class TikTokOAuthService {
 
   /**
    * Constructs official TikTok OAuth 2.0 Authorization URL
-   * Scopes: user.info.basic, user.info.profile, video.publish, video.upload
+   * Scopes: user.info.basic, video.publish, video.upload
    */
   getAuthorizationUrl(brandId: string, redirectUri: string): string {
     const state = Buffer.from(JSON.stringify({ brandId, ts: Date.now() })).toString("base64url");
-    const scopes = ["user.info.basic", "user.info.profile", "video.publish", "video.upload"].join(",");
+    const scopes = ["user.info.basic", "video.publish", "video.upload"].join(",");
 
     const params = new URLSearchParams({
       client_key: this.clientKey,
@@ -34,6 +34,9 @@ export class TikTokOAuthService {
       scope: scopes,
       response_type: "code",
       language: "en",
+      display_language: "en",
+      locale: "en",
+      lang: "en",
       state,
     });
 
@@ -107,7 +110,7 @@ export class TikTokOAuthService {
       console.warn("[TikTok Creator Info Query Failed]:", e);
     }
 
-    // Attempt 2: Query User Info endpoint (user.info.basic / user.info.profile)
+    // Attempt 2: Query User Info endpoint (user.info.basic)
     try {
       const res = await fetch("https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,avatar_url_100,display_name,username", {
         headers: {
@@ -208,7 +211,7 @@ export class TikTokOAuthService {
         access_token: encryptedToken,
         connected_by: userId || null,
         is_active: true,
-        scopes: ["user.info.basic", "user.info.profile", "video.publish", "video.upload"],
+        scopes: ["user.info.basic", "video.publish", "video.upload"],
       })
       .onConflictDoUpdate({
         target: [brandSocialConnections.brand_id, brandSocialConnections.platform, brandSocialConnections.page_id],

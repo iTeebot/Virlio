@@ -22,10 +22,11 @@ export class TikTokOAuthService {
 
   /**
    * Constructs official TikTok OAuth 2.0 Authorization URL
+   * Scopes: user.info.basic, user.info.profile, video.publish, video.upload
    */
   getAuthorizationUrl(brandId: string, redirectUri: string): string {
     const state = Buffer.from(JSON.stringify({ brandId, ts: Date.now() })).toString("base64url");
-    const scopes = ["user.info.basic", "video.publish", "video.upload"].join(",");
+    const scopes = ["user.info.basic", "user.info.profile", "video.publish", "video.upload"].join(",");
 
     const params = new URLSearchParams({
       client_key: this.clientKey,
@@ -76,31 +77,60 @@ export class TikTokOAuthService {
   }
 
   /**
-   * Retrieves authenticated TikTok user profile
+   * Retrieves authenticated TikTok creator profile using Creator Info endpoint & User Info endpoint
    */
   async getProfile(accessToken: string, defaultOpenId?: string): Promise<TikTokUserProfile> {
+    // Attempt 1: Query Creator Info endpoint (official for video.publish scope)
     try {
-      const res = await fetch("https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name,username", {
+      const creatorRes = await fetch("https://open.tiktokapis.com/v2/post/publish/creator_info/query/", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json; charset=UTF-8",
+        },
+      });
+
+      const creatorJson = await creatorRes.json();
+      console.log("[TikTok Creator Info Response]:", creatorJson);
+
+      if (creatorJson.data?.creator_username || creatorJson.data?.creator_nickname) {
+        const c = creatorJson.data;
+        const name = c.creator_nickname || c.creator_username;
+        return {
+          open_id: defaultOpenId || `tt_${Date.now()}`,
+          display_name: name,
+          username: c.creator_username || name,
+          avatar_url: c.creator_avatar_url,
+        };
+      }
+    } catch (e) {
+      console.warn("[TikTok Creator Info Query Failed]:", e);
+    }
+
+    // Attempt 2: Query User Info endpoint (user.info.basic / user.info.profile)
+    try {
+      const res = await fetch("https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,avatar_url_100,display_name,username", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       });
 
       const json = await res.json();
-      console.log("[TikTok getProfile Response]:", json);
+      console.log("[TikTok User Info Response]:", json);
 
       if (json.data?.user) {
         const u = json.data.user;
+        const resolvedName = u.display_name || u.username || (defaultOpenId ? `tiktok_user_${defaultOpenId.slice(-4)}` : "tiktok_creator");
         return {
-          open_id: u.open_id || defaultOpenId || `tt_${Date.now()}`,
+          open_id: String(u.open_id || defaultOpenId || `tt_${Date.now()}`),
           union_id: u.union_id,
-          display_name: u.display_name || u.username,
-          avatar_url: u.avatar_url,
-          username: u.username || u.display_name,
+          display_name: resolvedName,
+          username: u.username || u.display_name || resolvedName,
+          avatar_url: u.avatar_url || u.avatar_url_100 || u.avatar_large_url,
         };
       }
     } catch (e) {
-      console.warn("[TikTok getProfile Exception]:", e);
+      console.warn("[TikTok User Info Query Failed]:", e);
     }
 
     const fallbackId = defaultOpenId || `tt_${Date.now()}`;
@@ -160,7 +190,7 @@ export class TikTokOAuthService {
     }
 
     const encryptedToken = encryptToken(accessToken);
-    const rawName = profile.username || profile.display_name || "tiktok_creator";
+    const rawName = profile.display_name || profile.username || "tiktok_creator";
     const cleanUsername = rawName.startsWith("@") ? rawName : `@${rawName}`;
     const pictureUrl =
       profile.avatar_url ||
@@ -178,7 +208,7 @@ export class TikTokOAuthService {
         access_token: encryptedToken,
         connected_by: userId || null,
         is_active: true,
-        scopes: ["user.info.basic", "video.publish", "video.upload"],
+        scopes: ["user.info.basic", "user.info.profile", "video.publish", "video.upload"],
       })
       .onConflictDoUpdate({
         target: [brandSocialConnections.brand_id, brandSocialConnections.platform, brandSocialConnections.page_id],

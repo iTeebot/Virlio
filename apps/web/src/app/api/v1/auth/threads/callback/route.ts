@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
   try {
     const session = await authService.getCurrentSession();
     const { searchParams } = new URL(req.url);
-    const code = searchParams.get("code");
+    const rawCode = searchParams.get("code");
+    const code = rawCode ? rawCode.replace(/#_$/, "").replace(/#.*$/, "").trim() : "";
     const stateEncoded = searchParams.get("state");
 
     let brandId = "";

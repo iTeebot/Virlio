@@ -32,6 +32,7 @@ export class TikTokOAuthService {
       redirect_uri: redirectUri,
       scope: scopes,
       response_type: "code",
+      language: "en",
       state,
     });
 

@@ -1,0 +1,21 @@
+{
+  "ci": {
+    "collect": {
+      "numberOfRuns": 3,
+      "url": [
+        "https://virlio.iteebot.com/explore",
+        "https://virlio.iteebot.com/profiles/ateebnoone",
+        "https://virlio.iteebot.com/dashboard/overview",
+        "https://virlio.iteebot.com/leaderboard",
+        "https://virlio.iteebot.com/achievements"
+      ]
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.60 }],
+        "first-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "interactive": ["warn", { "maxNumericValue": 3500 }]
+      }
+    }
+  }
+}

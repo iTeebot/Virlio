@@ -498,7 +498,12 @@ export class UserStatsEngine {
       }).catch(() => null),
 
       xpRepository.updateLevel(userId, level, xp, xp, nextLevelXp).catch(() => null),
-    ]).catch(() => null);
+    ]).then(async () => {
+      if (dbUser?.username) {
+        const { invalidateCacheTag } = await import("@/server/services/cache-server.service");
+        invalidateCacheTag(`profile:${dbUser.username}`);
+      }
+    }).catch(() => null);
 
     return {
       userId,

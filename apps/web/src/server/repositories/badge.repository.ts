@@ -74,6 +74,18 @@ export async function awardToBrand(brandId: string, badgeId: string) {
  * Server-Side Protected Badge Awarding
  * Only permits awarding official 13 system badges defined in OFFICIAL_SYSTEM_BADGES.
  */
+function mapCategoryToEnum(category: string): "contribution" | "streak" | "engagement" | "moderation" | "special" {
+  switch (category) {
+    case "Special": return "special";
+    case "Community":
+    case "Milestones": return "contribution";
+    case "Trust & Safety": return "moderation";
+    case "Generation":
+    case "Virality": return "engagement";
+    default: return "special";
+  }
+}
+
 export async function awardBadgeBySlug(userId: string, badgeSlug: string, customUnlockedAt?: Date) {
   if (!ALLOWED_BADGE_SLUGS.has(badgeSlug)) {
     console.warn(`[BadgeRepository] Attempted to award unauthorized badge slug: "${badgeSlug}". Rejected.`);
@@ -90,7 +102,7 @@ export async function awardBadgeBySlug(userId: string, badgeSlug: string, custom
         name: def.name,
         slug: def.slug,
         description: def.description,
-        category: def.category.toLowerCase().replace(/ & /g, "_").replace(/ /g, "_") as any,
+        category: mapCategoryToEnum(def.category),
         icon_url: def.icon_url,
       })
       .onConflictDoUpdate({
@@ -148,7 +160,7 @@ export async function syncOfficialBadgesAndPurgeLegacy() {
           name: def.name,
           slug: def.slug,
           description: def.description,
-          category: def.category.toLowerCase().replace(/ & /g, "_").replace(/ /g, "_") as any,
+          category: mapCategoryToEnum(def.category),
           icon_url: def.icon_url,
         })
         .onConflictDoUpdate({

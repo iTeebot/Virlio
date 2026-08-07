@@ -47,19 +47,76 @@ Virlio is an AI-powered branded meme & social content automation platform built 
 > [!CAUTION]
 > Violating any of these rules will result in immediate PR rejection:
 
-1. **NEVER** bypass the repository layer to execute raw `db.query` statements inside page components.
-2. **NEVER** add `"use client"` to a top-level page file to fix a server/client import boundary issue—refactor the child component instead.
-3. **NEVER** write database mutations (`INSERT`, `UPDATE`, `DELETE`) inside read/query methods.
-4. **NEVER** use CSS gradients or raw inline SVGs for UI icons.
-5. **NEVER** use mock/dummy fallbacks in production endpoints.
-6. **NEVER** modify or delete existing unit/integration tests to mask a failure.
-7. **NEVER** start implementing performance refactors without consulting [`docs/architecture/implementation-playbook.md`](docs/architecture/implementation-playbook.md).
+1. **NEVER** implement work from multiple architectural phases in a single session.
+2. **NEVER** bypass the repository layer to execute raw `db.query` statements inside page components.
+3. **NEVER** add `"use client"` to a top-level page file to fix a server/client import boundary issue—refactor the child component instead.
+4. **NEVER** write database mutations (`INSERT`, `UPDATE`, `DELETE`) inside read/query methods.
+5. **NEVER** use CSS gradients or raw inline SVGs for UI icons.
+6. **NEVER** use mock/dummy fallbacks in production endpoints.
+7. **NEVER** modify or delete existing unit/integration tests to mask a failure.
+8. **NEVER** start implementing performance refactors without consulting [`docs/architecture/implementation-playbook.md`](docs/architecture/implementation-playbook.md).
 
 ---
 
-## 4. How to Execute Work on Virlio
+## 4. Phase Execution & Mandatory Completion Protocol
+
+### A. Single-Phase Execution Rule
+- **NEVER implement work from multiple phases in one session.**
+- Every phase must finish completely before the next phase begins.
+
+### B. Mandatory Post-Phase Workflow
+At the end of every phase, the executing agent MUST perform the following steps before declaring completion:
+1. **Run Tests**: Run `npx tsc --noEmit` and all unit/integration test suites (`pnpm --filter web run test`).
+2. **Benchmark**: Collect empirical *Before vs. After* performance metrics (TTFB, LCP, INP, CLS, Query Count).
+3. **Update Phase Documentation**: Record actual metrics, files changed, and lessons learned in `docs/architecture/phase-XX-*.md`.
+4. **Update `AGENTS.md`**: Update current active phase status indicator.
+5. **Update Playbook**: Mark phase status as **COMPLETED** in `docs/architecture/implementation-playbook.md`.
+6. **Generate Phase Completion Report**: Output a standardized completion report in your response.
+
+### C. Standardized Phase Completion Report Format
+
+```text
+Phase XX Complete
+
+Files Changed:
+<number>
+
+Queries Optimized:
+<number>
+
+Indexes Added:
+<number>
+
+Duplicate Queries Removed:
+<number>
+
+API Calls Reduced:
+<percentage>%
+
+Lighthouse:
+<before> → <after>
+
+TTFB:
+<before>ms → <after>ms
+
+LCP:
+<before>s → <after>s
+
+Tests:
+<number> Passed
+
+Known Issues:
+None (or detailed description)
+
+Ready for Phase XX+1:
+Yes
+```
+
+---
+
+## 5. How to Execute Work on Virlio
 
 1. **Check Current Status**: Inspect [`docs/architecture/implementation-playbook.md`](docs/architecture/implementation-playbook.md) to see which phase is active.
 2. **Read Phase Documentation**: Open the specific phase document under `docs/architecture/phase-XX-*.md` before making changes.
 3. **Follow the Validation Checklist**: Complete all items in the phase checklist before marking a phase **COMPLETED**.
-4. **Update the Playbook**: Update `implementation-playbook.md` status, owner, and benchmark data upon completion.
+4. **Execute Completion Protocol**: Follow Section 4 above and generate the Phase Completion Report upon phase finish.

@@ -1,7 +1,9 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { authService } from "@/server/services";
 import { getCachedPublicMemes } from "@/server/services/cache-server.service";
 import { ExploreFeedClient } from "@/components/explore/explore-feed-client";
+import { ExploreFeedSkeleton } from "@/components/ui/skeletons";
+import { SectionErrorBoundary } from "@/components/errors/section-error-boundary";
 import type { ExplorePost } from "@/components/explore/explore-post-card";
 
 export const metadata = {
@@ -38,5 +40,11 @@ export default async function ExplorePage() {
     currentUserVote: m.currentUserVote || null,
   }));
 
-  return <ExploreFeedClient initialMemes={initialMemes} isAuthenticated={isAuthenticated} />;
+  return (
+    <SectionErrorBoundary sectionTitle="Explore Feed">
+      <Suspense fallback={<ExploreFeedSkeleton />}>
+        <ExploreFeedClient initialMemes={initialMemes} isAuthenticated={isAuthenticated} />
+      </Suspense>
+    </SectionErrorBoundary>
+  );
 }

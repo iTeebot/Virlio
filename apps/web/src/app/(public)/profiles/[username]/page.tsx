@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,6 +8,8 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { ActivityContributionGrid } from "@/components/profile/activity-contribution-grid";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
 import { ProfileTabSwitcher } from "@/components/profile/profile-tab-switcher";
+import { BadgesGridSkeleton } from "@/components/ui/skeletons";
+import { SectionErrorBoundary } from "@/components/errors/section-error-boundary";
 import { userRepository, followRepository, brandRepository, memeRepository, templateRepository, badgeRepository } from "@/server/repositories";
 import { authService } from "@/server/services";
 import { userStatsEngine } from "@/server/services/user-stats-engine.service";
@@ -291,61 +293,65 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
 
-          {/* 3. COMMUNITY BADGES & ACHIEVEMENTS SECTION */}
-          <div className="virlio-card p-6 bg-white border border-gray-200 rounded-3xl shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-purple-600" />
-                <h2 className="text-lg font-bold text-gray-900">Earned Badges & Achievements</h2>
-              </div>
-              <span className="text-xs font-bold text-gray-500">
-                {achievements.filter((a: any) => a.unlocked).length} / {achievements.length} Unlocked
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {achievements.map((a: any) => {
-                const badgeDef = OFFICIAL_SYSTEM_BADGES[a.slug];
-                const badgeImg = badgeDef?.icon_url || a.icon_url;
-
-                return (
-                  <div
-                    key={a.id}
-                    className={`p-3 rounded-2xl border text-center space-y-2 transition flex flex-col justify-between ${
-                      a.unlocked
-                        ? "bg-purple-50/50 border-purple-200 text-purple-900"
-                        : "bg-gray-50 border-gray-200 text-gray-400 opacity-60"
-                    }`}
-                    title={a.description}
-                  >
-                    <div className="relative w-12 h-12 mx-auto flex items-center justify-center pt-1">
-                      {badgeImg ? (
-                        <Image
-                          src={badgeImg}
-                          alt={a.name}
-                          width={48}
-                          height={48}
-                          className={`w-12 h-12 object-contain transition-all ${
-                            a.unlocked ? "drop-shadow-xs" : "grayscale opacity-35"
-                          }`}
-                        />
-                      ) : a.unlocked ? (
-                        <Award className="w-6 h-6 text-purple-600" />
-                      ) : (
-                        <Lock className="w-6 h-6 text-gray-400" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold truncate mt-1">{a.name}</p>
-                      <p className="text-[9px] font-medium text-gray-500">
-                        {a.unlocked ? "Unlocked" : `${a.progress}%`}
-                      </p>
-                    </div>
+          {/* 3. EARNED BADGES GRID */}
+          <SectionErrorBoundary sectionTitle="Earned Badges & Achievements">
+            <Suspense fallback={<BadgesGridSkeleton />}>
+              <div className="virlio-card p-6 bg-white border border-gray-200 rounded-3xl shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-purple-600" />
+                    <h2 className="text-lg font-bold text-gray-900">Earned Badges & Achievements</h2>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <span className="text-xs font-bold text-gray-500">
+                    {achievements.filter((a: any) => a.unlocked).length} / {achievements.length} Unlocked
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {achievements.map((a: any) => {
+                    const badgeDef = OFFICIAL_SYSTEM_BADGES[a.slug];
+                    const badgeImg = badgeDef?.icon_url || a.icon_url;
+
+                    return (
+                      <div
+                        key={a.id}
+                        className={`p-3 rounded-2xl border text-center space-y-2 transition flex flex-col justify-between ${
+                          a.unlocked
+                            ? "bg-purple-50/50 border-purple-200 text-purple-900"
+                            : "bg-gray-50 border-gray-200 text-gray-400 opacity-60"
+                        }`}
+                        title={a.description}
+                      >
+                        <div className="relative w-12 h-12 mx-auto flex items-center justify-center pt-1">
+                          {badgeImg ? (
+                            <Image
+                              src={badgeImg}
+                              alt={a.name}
+                              width={48}
+                              height={48}
+                              className={`w-12 h-12 object-contain transition-all ${
+                                a.unlocked ? "drop-shadow-xs" : "grayscale opacity-35"
+                              }`}
+                            />
+                          ) : a.unlocked ? (
+                            <Award className="w-6 h-6 text-purple-600" />
+                          ) : (
+                            <Lock className="w-6 h-6 text-gray-400" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-bold truncate mt-1">{a.name}</p>
+                          <p className="text-[9px] font-medium text-gray-500">
+                            {a.unlocked ? "Unlocked" : `${a.progress}%`}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </Suspense>
+          </SectionErrorBoundary>
 
           {/* 4. STREAK SYSTEM & CONTRIBUTION CALENDAR */}
           <ActivityContributionGrid

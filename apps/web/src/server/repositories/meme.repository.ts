@@ -70,7 +70,11 @@ export async function findPublicMemes(options: { limit?: number; offset?: number
 
 export async function findByGenerator(userId: string, options: { limit?: number; offset?: number } = {}) {
   return db.query.memes.findMany({
-    where: and(eq(memes.generator_id, userId), isNull(memes.deleted_at)),
+    where: and(
+      eq(memes.generator_id, userId),
+      eq(memes.visibility, "public"),
+      isNull(memes.deleted_at)
+    ),
     limit: options.limit || 10,
     offset: options.offset || 0,
     orderBy: desc(memes.created_at),

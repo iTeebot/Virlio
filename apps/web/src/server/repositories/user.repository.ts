@@ -143,8 +143,8 @@ export async function getAggregatedUserCounts(userId: string) {
       (SELECT COUNT(*) FROM templates WHERE uploaded_by = ${userId} AND deleted_at IS NULL)::int AS total_templates,
       (SELECT COUNT(*) FROM templates WHERE uploaded_by = ${userId} AND moderation_status = 'approved' AND deleted_at IS NULL)::int AS approved_templates,
       (SELECT COALESCE(SUM(upvotes_count), 0) FROM templates WHERE uploaded_by = ${userId} AND deleted_at IS NULL)::int AS template_upvotes,
-      (SELECT COUNT(*) FROM memes WHERE generator_id = ${userId} AND deleted_at IS NULL)::int AS total_memes,
-      (SELECT COALESCE(SUM(engagement_score), 0) FROM memes WHERE generator_id = ${userId} AND deleted_at IS NULL)::int AS meme_upvotes
+      (SELECT COUNT(*) FROM memes WHERE generator_id = ${userId} AND visibility = 'public' AND deleted_at IS NULL)::int AS total_memes,
+      (SELECT COALESCE(SUM(engagement_score), 0) FROM memes WHERE generator_id = ${userId} AND visibility = 'public' AND deleted_at IS NULL)::int AS meme_upvotes
   `);
 
   const row = (result.rows?.[0] || result[0] || {}) as any;

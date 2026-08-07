@@ -76,6 +76,7 @@ export const AppHeader = memo(function AppHeader({ variant }: AppHeaderProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={true}
                       className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
                         isActive
                           ? "bg-blue-50 text-blue-700 font-bold"
@@ -96,6 +97,7 @@ export const AppHeader = memo(function AppHeader({ variant }: AppHeaderProps) {
                     <Link
                       key={link.href}
                       href={link.href}
+                      prefetch={true}
                       className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
                         isActive
                           ? "bg-blue-50 text-blue-700 font-bold"

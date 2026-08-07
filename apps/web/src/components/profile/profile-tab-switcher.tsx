@@ -71,7 +71,7 @@ export function ProfileTabSwitcher({
                 <div key={m.id || m.title} className="virlio-card p-4 bg-white border border-gray-200 rounded-3xl space-y-3">
                   <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
                     {(m.cloudinary_secure_url || m.image_url) ? (
-                      <Image src={m.cloudinary_secure_url || m.image_url} alt={m.title || "Meme"} fill className="object-cover" />
+                      <Image src={m.cloudinary_secure_url || m.image_url} alt={m.title || "Meme"} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
                     ) : (
                       <div className="flex items-center justify-center h-full text-xs text-gray-400">Meme Image</div>
                     )}
@@ -103,7 +103,7 @@ export function ProfileTabSwitcher({
                 <div key={t.id || t.title} className="virlio-card p-4 bg-white border border-gray-200 rounded-3xl space-y-3">
                   <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
                     {(t.cloudinary_secure_url || t.image_url) ? (
-                      <Image src={t.cloudinary_secure_url || t.image_url} alt={t.title || "Template"} fill className="object-cover" />
+                      <Image src={t.cloudinary_secure_url || t.image_url} alt={t.title || "Template"} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" />
                     ) : (
                       <div className="flex items-center justify-center h-full text-xs text-gray-400">Template Image</div>
                     )}
@@ -135,7 +135,7 @@ export function ProfileTabSwitcher({
                 <div key={b.id} className="virlio-card p-5 bg-white border border-gray-200 rounded-3xl space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="relative w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center overflow-hidden shrink-0">
-                      {b.logo_url ? <Image src={b.logo_url} alt={b.name} fill className="object-cover" /> : <Building2 className="w-5 h-5 text-blue-600" />}
+                      {b.logo_url ? <Image src={b.logo_url} alt={b.name} fill sizes="40px" className="object-cover" /> : <Building2 className="w-5 h-5 text-blue-600" />}
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-gray-900 truncate">{b.name}</h4>

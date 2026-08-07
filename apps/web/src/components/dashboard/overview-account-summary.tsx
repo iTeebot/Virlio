@@ -28,7 +28,7 @@ export function OverviewAccountSummary({ user }: OverviewAccountSummaryProps) {
       <div className="flex items-center gap-3.5 pb-4 border-b border-gray-100">
         <div className="relative w-12 h-12 rounded-full overflow-hidden bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
           {user.image ? (
-            <Image src={user.image} alt={name} fill unoptimized className="object-cover" />
+            <Image src={user.image} alt={name} fill unoptimized sizes="48px" className="object-cover" />
           ) : (
             <User className="w-6 h-6 text-blue-600" />
           )}

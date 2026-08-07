@@ -8,7 +8,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { ActivityContributionGrid } from "@/components/profile/activity-contribution-grid";
 import { ProfileFollowButton } from "@/components/profile/profile-follow-button";
 import { ProfileTabSwitcher } from "@/components/profile/profile-tab-switcher";
-import { userRepository, followRepository, brandRepository, memeRepository, templateRepository } from "@/server/repositories";
+import { userRepository, followRepository, brandRepository, memeRepository, templateRepository, badgeRepository } from "@/server/repositories";
 import { authService } from "@/server/services";
 import { userStatsEngine } from "@/server/services/user-stats-engine.service";
 import {
@@ -30,6 +30,8 @@ import {
   Trophy,
   Award,
   ExternalLink,
+  Layers,
+  Lock,
 } from "lucide-react";
 
 interface ProfilePageProps {
@@ -61,10 +63,13 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
-  const [session, stats, userBrands, followerCount, followingCount, isFollowing] = await Promise.all([
+  const [session, stats, userBrands, userMemes, userTemplates, userBadges, followerCount, followingCount, isFollowing] = await Promise.all([
     authService.getCurrentSession(),
     userStatsEngine.getUserStatistics(dbUser.id),
     brandRepository.findByOwner(dbUser.id).catch(() => []),
+    memeRepository.findByGenerator(dbUser.id, { limit: 50 }).catch(() => []),
+    templateRepository.findByContributor(dbUser.id, { limit: 50 }).catch(() => []),
+    badgeRepository.findByUser(dbUser.id).catch(() => []),
     followRepository.getFollowerCount(dbUser.id).catch(() => 0),
     followRepository.getFollowingCount(dbUser.id).catch(() => 0),
     authService.getCurrentSession().then(s => s?.user?.id ? followRepository.isFollowing(s.user.id, dbUser.id, "user").catch(() => false) : false),
@@ -94,6 +99,7 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
   const nextLevelXp = stats.nextLevelXp;
   const xp = stats.xp;
   const levelProgress = stats.levelProgress;
+  const achievements = stats.achievements || [];
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900 selection:bg-blue-600 selection:text-white virlio-landing-bg">
@@ -290,7 +296,46 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
 
-          {/* 3. STREAK SYSTEM & CONTRIBUTION CALENDAR */}
+          {/* 3. COMMUNITY BADGES & ACHIEVEMENTS SECTION */}
+          <div className="virlio-card p-6 bg-white border border-gray-200 rounded-3xl shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-purple-600" />
+                <h2 className="text-lg font-bold text-gray-900">Earned Badges & Achievements</h2>
+              </div>
+              <span className="text-xs font-bold text-gray-500">
+                {achievements.filter((a: any) => a.unlocked).length} / {achievements.length} Unlocked
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {achievements.map((a: any) => (
+                <div
+                  key={a.id}
+                  className={`p-3 rounded-2xl border text-center space-y-2 transition ${
+                    a.unlocked
+                      ? "bg-purple-50/50 border-purple-200 text-purple-900"
+                      : "bg-gray-50 border-gray-200 text-gray-400 opacity-60"
+                  }`}
+                  title={a.description}
+                >
+                  <div className="w-8 h-8 rounded-xl mx-auto flex items-center justify-center bg-white border border-gray-200 shadow-2xs">
+                    {a.unlocked ? (
+                      <Award className="w-4 h-4 text-purple-600" />
+                    ) : (
+                      <Lock className="w-4 h-4 text-gray-400" />
+                    )}
+                  </div>
+                  <p className="text-[11px] font-bold truncate">{a.name}</p>
+                  <p className="text-[9px] font-medium text-gray-500">
+                    {a.unlocked ? "Unlocked" : `${a.progress}%`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. STREAK SYSTEM & CONTRIBUTION CALENDAR */}
           <ActivityContributionGrid
             currentStreak={stats.currentStreak}
             longestStreak={stats.longestStreak}
@@ -299,10 +344,10 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
             contributionCalendar={stats.contributionCalendar}
           />
 
-          {/* 4. TABBED CONTENT NAVIGATOR */}
+          {/* 5. TABBED CONTENT NAVIGATOR */}
           <ProfileTabSwitcher
-            memes={[]}
-            templates={[]}
+            memes={userMemes}
+            templates={userTemplates}
             brands={userBrands}
             activityTimeline={stats.timeline}
           />

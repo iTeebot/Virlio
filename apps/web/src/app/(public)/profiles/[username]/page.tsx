@@ -15,6 +15,7 @@ import { toast } from "@/components/ui/toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useTemplateStore } from "@/providers/template-provider";
 import { useTemplateVote } from "@/hooks/useTemplateVote";
+import { OFFICIAL_SYSTEM_BADGES } from "@/server/constants/badge-catalog";
 
 function ProfileTemplateCard({ t }: { t: any }) {
   const { upvotesCount, isLiked, isPending, handleVote } = useTemplateVote(t.id, {
@@ -1005,17 +1006,21 @@ function UserPublicProfileContent() {
                     {userBadges.map((ub: any) => {
                       const badgeObj = ub.badge || ub;
                       if (!badgeObj || (!badgeObj.name && !badgeObj.slug)) return null;
-                      const iconUrl = badgeObj.icon_url || "/images/badges/badge_Early_adopter.png";
+                      const slug = badgeObj.slug || ub.badge_id;
+                      const officialDef = OFFICIAL_SYSTEM_BADGES[slug];
+                      const iconUrl = officialDef?.icon_url || badgeObj.icon_url || "/images/badges/badge_Early_adopter.png";
+                      const badgeName = officialDef?.name || badgeObj.name || slug;
+                      const badgeCategory = officialDef?.category || badgeObj.category || "Special";
 
                       return (
                         <div key={ub.id} className="virlio-card p-5 text-center flex flex-col items-center justify-between bg-white border border-gray-200 rounded-3xl">
                           <div className="relative w-20 h-20 mb-3">
-                            <Image src={iconUrl} alt={badgeObj.name} fill sizes="80px" className="object-contain drop-shadow-xs" />
+                            <Image src={iconUrl} alt={badgeName} fill sizes="80px" className="object-contain drop-shadow-xs" />
                           </div>
                           <div>
-                            <p className="text-sm font-extrabold text-gray-900 leading-snug">{badgeObj.name}</p>
+                            <p className="text-sm font-extrabold text-gray-900 leading-snug">{badgeName}</p>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100 uppercase mt-1 inline-block">
-                              {badgeObj.category || "Special"}
+                              {badgeCategory}
                             </span>
                             <p className="text-[11px] text-gray-500 mt-2 font-medium">
                               Unlocked on {formatUnlockedAt(ub.unlocked_at)}

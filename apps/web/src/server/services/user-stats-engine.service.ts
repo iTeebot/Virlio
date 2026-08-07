@@ -140,6 +140,9 @@ export class UserStatsEngine {
    */
   async getUserStatistics(userId: string): Promise<UnifiedUserStatistics> {
     // 1. Parallel database lookups
+    // Auto-heal DB badge metadata and purge non-system legacy rows
+    await badgeRepository.syncOfficialBadgesAndPurgeLegacy().catch(() => null);
+
     const [
       dbUser,
       userAccounts,
@@ -322,61 +325,115 @@ export class UserStatsEngine {
       };
     });
 
-    // 6. Dynamic Achievement Evaluation
+    // 6. Dynamic Achievement Evaluation (strictly aligned with official 13 system badges)
     const achievementDefinitions = [
       {
         id: "verified-brand",
         name: "Verified Brand",
         slug: "verified-brand",
-        description: "Verify at least 1 official brand domain or social account.",
+        description: "Official verification mark confirming legitimate business ownership and domain authenticity.",
         icon: "ShieldCheck",
         reqCount: 1,
         currentCount: verifiedBrands,
       },
       {
-        id: "template-creator",
-        name: "Template Creator",
-        slug: "template-creator",
-        description: "Upload and publish at least 1 approved template.",
-        icon: "Layers",
-        reqCount: 1,
-        currentCount: approvedTemplates,
-      },
-      {
-        id: "meme-creator",
-        name: "Meme Studio Creator",
-        slug: "meme-creator",
-        description: "Render at least 1 meme using Virlio AI Studio.",
-        icon: "Sparkles",
-        reqCount: 1,
-        currentCount: totalMemes,
-      },
-      {
-        id: "community-member",
-        name: "Community Leader",
-        slug: "community-member",
-        description: "Gain at least 1 follower on your Virlio profile.",
-        icon: "Users",
-        reqCount: 1,
-        currentCount: followerCount,
-      },
-      {
-        id: "streak-master",
-        name: "Streak Master",
-        slug: "streak-master",
-        description: "Maintain an active daily streak of 3 days or more.",
-        icon: "Flame",
-        reqCount: 3,
-        currentCount: currentStreak,
-      },
-      {
         id: "top-contributor",
         name: "Top Contributor",
         slug: "top-contributor",
-        description: "Reach 100+ Total XP on Virlio.",
+        description: "Awarded to elite template creators whose submissions consistently drive high engagement.",
         icon: "Award",
-        reqCount: 100,
+        reqCount: 1000,
         currentCount: xp,
+      },
+      {
+        id: "100-templates",
+        name: "100 Templates Uploaded",
+        slug: "100-templates",
+        description: "Celebrates creators who have contributed 100 high-quality, AI-approved meme templates.",
+        icon: "Layers",
+        reqCount: 100,
+        currentCount: approvedTemplates,
+      },
+      {
+        id: "500-templates",
+        name: "500 Templates Uploaded",
+        slug: "500-templates",
+        description: "A major milestone badge for prolific creators supplying 500 approved template formats.",
+        icon: "Layers",
+        reqCount: 500,
+        currentCount: approvedTemplates,
+      },
+      {
+        id: "1000-templates",
+        name: "1,000 Templates Uploaded",
+        slug: "1000-templates",
+        description: "Exclusive badge reserved for legendary creators who have reached 1,000 published templates.",
+        icon: "Layers",
+        reqCount: 1000,
+        currentCount: approvedTemplates,
+      },
+      {
+        id: "100-memes",
+        name: "100 Memes Generated",
+        slug: "100-memes",
+        description: "Awarded to active brands and creators who have rendered 100 marketing memes.",
+        icon: "Sparkles",
+        reqCount: 100,
+        currentCount: totalMemes,
+      },
+      {
+        id: "1000-memes",
+        name: "1,000 Memes Generated",
+        slug: "1000-memes",
+        description: "Recognizes high-velocity brand marketing teams that have produced 1,000 AI-powered memes.",
+        icon: "Sparkles",
+        reqCount: 1000,
+        currentCount: totalMemes,
+      },
+      {
+        id: "10k-memes",
+        name: "10,000 Memes Generated",
+        slug: "10k-memes",
+        description: "The ultimate generation milestone badge representing 10,000 high-converting brand memes.",
+        icon: "Sparkles",
+        reqCount: 10000,
+        currentCount: totalMemes,
+      },
+      {
+        id: "community-favorite",
+        name: "Community Favorite",
+        slug: "community-favorite",
+        description: "Awarded when your uploaded templates receive exceptional community upvotes.",
+        icon: "Heart",
+        reqCount: 10000,
+        currentCount: templateUpvotes + memeUpvotes,
+      },
+      {
+        id: "ai-approved",
+        name: "AI Approved",
+        slug: "ai-approved",
+        description: "Signifies flawless compliance history with automated AI guardrail approval rating.",
+        icon: "CheckCircle",
+        reqCount: 50,
+        currentCount: approvedTemplates,
+      },
+      {
+        id: "trend-setter",
+        name: "Trend Setter",
+        slug: "trend-setter",
+        description: "Granted to creators who submit a template format that goes viral on public leaderboards.",
+        icon: "Zap",
+        reqCount: 1,
+        currentCount: approvedTemplates > 0 ? 1 : 0,
+      },
+      {
+        id: "hall-of-fame",
+        name: "Hall of Fame",
+        slug: "hall-of-fame",
+        description: "The highest honor on Virlio. Inducts top historical contributors and all-time leading brands.",
+        icon: "Trophy",
+        reqCount: 1000000,
+        currentCount: templateViews,
       },
     ];
 
@@ -400,7 +457,17 @@ export class UserStatsEngine {
       });
 
       if (isUnlocked && !unlockedBadgeSlugs.has(def.slug)) {
-        await badgeRepository.awardBadgeBySlug(userId, def.slug).catch(() => null);
+        let unlockDate = new Date();
+        if (def.slug === "verified-brand") {
+          const verifiedBrandObj = userBrands.find((b: any) => (b.verification_status || "").toLowerCase() === "verified");
+          if (verifiedBrandObj?.updated_at || verifiedBrandObj?.created_at) {
+            unlockDate = new Date(verifiedBrandObj.updated_at || verifiedBrandObj.created_at);
+          }
+        } else if (def.slug === "early-adopter" && dbUser?.created_at) {
+          unlockDate = new Date(dbUser.created_at);
+        }
+
+        await badgeRepository.awardBadgeBySlug(userId, def.slug, unlockDate).catch(() => null);
       }
     }
 

@@ -4,6 +4,7 @@ import { memes, templates, activities } from "@virlio/database/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
 import { userRepository } from "@/server/repositories";
 import { userStatsEngine } from "@/server/services/user-stats-engine.service";
+import { OFFICIAL_SYSTEM_BADGES, ALLOWED_BADGE_SLUGS } from "@/server/constants/badge-catalog";
 import { withErrorHandling } from "@/lib/server/api-wrapper";
 import { apiSuccess } from "@/lib/utils/api-response";
 
@@ -68,41 +69,55 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
 
     const featuredBrand = stats.brands.items.find((b) => (b.verification_status || "").toLowerCase() === "verified") || stats.brands.items[0] || null;
 
-    // Single source of truth badges: Combine user_badges table rows with unlocked dynamic achievements
+    // Single source of truth badges: Filter strictly against 13 official system badges
     const badgesMap = new Map<string, any>();
 
-    // 1. Add all badges from user_badges table (Early Adopter, Special Badges, etc.)
     for (const ub of stats.badges || []) {
       const slug = ub.badge?.slug || ub.badge_id;
-      if (slug) {
+      if (slug && ALLOWED_BADGE_SLUGS.has(slug)) {
+        const def = OFFICIAL_SYSTEM_BADGES[slug];
+        let unlockedAt = ub.unlocked_at || new Date();
+        if (slug === "early-adopter" && existingUser.created_at) {
+          unlockedAt = existingUser.created_at;
+        } else if (slug === "verified-brand" && featuredBrand) {
+          unlockedAt = featuredBrand.updated_at || featuredBrand.created_at || unlockedAt;
+        }
+
         badgesMap.set(slug, {
           id: ub.id || ub.badge?.id || slug,
-          unlocked_at: ub.unlocked_at || new Date(),
+          unlocked_at: unlockedAt,
           badge: {
             id: ub.badge?.id || ub.id || slug,
-            name: ub.badge?.name || slug,
+            name: def.name,
             slug,
-            description: ub.badge?.description || "",
-            category: ub.badge?.category || "Special",
-            icon_url: ub.badge?.icon_url || "/images/badges/badge_Early_adopter.png",
+            description: def.description,
+            category: def.category,
+            icon_url: def.icon_url,
           },
         });
       }
     }
 
-    // 2. Add unlocked dynamic achievements
     for (const a of stats.achievements || []) {
-      if (a.unlocked && !badgesMap.has(a.slug)) {
+      if (a.unlocked && ALLOWED_BADGE_SLUGS.has(a.slug) && !badgesMap.has(a.slug)) {
+        const def = OFFICIAL_SYSTEM_BADGES[a.slug];
+        let unlockedAt = new Date();
+        if (a.slug === "early-adopter" && existingUser.created_at) {
+          unlockedAt = existingUser.created_at;
+        } else if (a.slug === "verified-brand" && featuredBrand) {
+          unlockedAt = featuredBrand.updated_at || featuredBrand.created_at || unlockedAt;
+        }
+
         badgesMap.set(a.slug, {
           id: a.id,
-          unlocked_at: new Date(),
+          unlocked_at: unlockedAt,
           badge: {
             id: a.id,
-            name: a.name,
+            name: def.name,
             slug: a.slug,
-            description: a.description,
-            category: "Achievement",
-            icon_url: "/images/badges/badge_Early_adopter.png",
+            description: def.description,
+            category: def.category,
+            icon_url: def.icon_url,
           },
         });
       }

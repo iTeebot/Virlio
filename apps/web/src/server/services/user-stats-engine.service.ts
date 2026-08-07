@@ -322,6 +322,15 @@ export class UserStatsEngine {
     // 6. Dynamic Achievement Evaluation (strictly aligned with official 13 system badges)
     const achievementDefinitions = [
       {
+        id: "early-adopter",
+        name: "Early Adopter",
+        slug: "early-adopter",
+        description: "Recognizes pioneer creators and brands who join Virlio during the launch phase.",
+        icon: "Sparkles",
+        reqCount: 1,
+        currentCount: dbUser?.created_at ? 1 : 0,
+      },
+      {
         id: "verified-brand",
         name: "Verified Brand",
         slug: "verified-brand",
@@ -435,8 +444,8 @@ export class UserStatsEngine {
     const achievements: DynamicAchievement[] = [];
 
     for (const def of achievementDefinitions) {
-      const isUnlocked = def.currentCount >= def.reqCount;
-      const progress = Math.min(100, Math.round((def.currentCount / def.reqCount) * 100));
+      const isUnlocked = unlockedBadgeSlugs.has(def.slug) || (def.reqCount > 0 && def.currentCount >= def.reqCount);
+      const progress = isUnlocked ? 100 : Math.min(99, Math.round((def.currentCount / def.reqCount) * 100));
 
       achievements.push({
         id: def.id,

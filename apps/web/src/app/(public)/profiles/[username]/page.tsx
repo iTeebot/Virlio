@@ -35,6 +35,8 @@ import {
   Lock,
 } from "lucide-react";
 
+import { getCachedUserProfile } from "@/server/services/cache-server.service";
+
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
 }
@@ -58,23 +60,15 @@ export async function generateMetadata({ params }: ProfilePageProps) {
 
 export default async function UserProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
-  const dbUser = await userRepository.findByUsername(username);
+  const cached = await getCachedUserProfile(username);
 
-  if (!dbUser) {
+  if (!cached || !cached.dbUser) {
     notFound();
   }
 
-  const [session, stats, userBrands, userMemes, userTemplates, userBadges, followerCount, followingCount, isFollowing] = await Promise.all([
-    authService.getCurrentSession(),
-    userStatsEngine.getUserStatistics(dbUser.id),
-    brandRepository.findByOwner(dbUser.id).catch(() => []),
-    memeRepository.findByGenerator(dbUser.id, { limit: 50 }).catch(() => []),
-    templateRepository.findByContributor(dbUser.id, { limit: 50 }).catch(() => []),
-    badgeRepository.findByUser(dbUser.id).catch(() => []),
-    followRepository.getFollowerCount(dbUser.id).catch(() => 0),
-    followRepository.getFollowingCount(dbUser.id).catch(() => 0),
-    authService.getCurrentSession().then(s => s?.user?.id ? followRepository.isFollowing(s.user.id, dbUser.id, "user").catch(() => false) : false),
-  ]);
+  const { dbUser, stats, userBrands, userMemes, userTemplates, userBadges, followerCount, followingCount } = cached;
+  const session = await authService.getCurrentSession();
+  const isFollowing = session?.user?.id ? await followRepository.isFollowing(session.user.id, dbUser.id, "user").catch(() => false) : false;
 
   const currentUserId = session?.user?.id;
   const isOwnProfile = currentUserId === dbUser.id;

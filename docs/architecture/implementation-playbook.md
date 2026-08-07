@@ -56,7 +56,7 @@ Virlio is undergoing a production-grade performance re-architecture to transform
 | **Phase 03** | [Database Indexes & Query Budgets](phase-03-database.md) | **COMPLETED** | DB Architect | Phase 01 | Day 3 |
 | **Phase 04** | [SQL Query Optimization](phase-04-query-optimization.md) | **COMPLETED** | DB Architect | Phase 03 | Days 4–5 |
 | **Phase 05** | [Server Components (RSC) Migration](phase-05-server-components.md) | **COMPLETED** | Lead Engineer | Phase 02, 04 | Days 6–9 |
-| **Phase 06** | [Next.js Server Cache (`"use cache"`)](phase-06-server-cache.md) | **NOT STARTED** | Lead Engineer | Phase 05 | Days 10–12 |
+| **Phase 06** | [Next.js Server Cache (`"use cache"`)](phase-06-server-cache.md) | **COMPLETED** | Lead Engineer | Phase 05 | Days 10–12 |
 | **Phase 07** | [TanStack Query v5 Integration](phase-07-tanstack-query.md) | **NOT STARTED** | Frontend Lead | Phase 05, 06 | Days 13–15 |
 | **Phase 08** | [Streaming & Suspense Boundaries](phase-08-streaming.md) | **NOT STARTED** | Frontend Lead | Phase 05, 07 | Days 16–17 |
 | **Phase 09** | [Image & CDN Optimization](phase-09-images.md) | **NOT STARTED** | Frontend Lead | Phase 05 | Days 18–19 |

@@ -60,5 +60,9 @@ export const PATCH = withErrorHandling(async (req: NextRequest) => {
   const { activityEngine } = await import("@/server/services/activity-engine.service");
   await activityEngine.recordActivity(session.user.id, "profile_updated").catch(() => null);
 
+  const { invalidateCacheTag } = await import("@/server/services/cache-server.service");
+  if (session.user.username) invalidateCacheTag(`profile:${session.user.username}`);
+  if (updatedUser?.username) invalidateCacheTag(`profile:${updatedUser.username}`);
+
   return apiSuccess(updatedUser);
 });

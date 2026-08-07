@@ -1,6 +1,6 @@
 import React from "react";
-import { authService, memeService } from "@/server/services";
-import { memeRepository } from "@/server/repositories";
+import { authService } from "@/server/services";
+import { getCachedPublicMemes } from "@/server/services/cache-server.service";
 import { ExploreFeedClient } from "@/components/explore/explore-feed-client";
 import type { ExplorePost } from "@/components/explore/explore-post-card";
 
@@ -13,8 +13,8 @@ export default async function ExplorePage() {
   const session = await authService.getCurrentSession();
   const isAuthenticated = Boolean(session?.user?.id);
 
-  // Fetch initial 10 public memes directly on the server
-  const rawMemes = await memeRepository.findPublicMemes({ limit: 10, offset: 0 });
+  // Fetch initial 10 public memes using Server Cache
+  const rawMemes = await getCachedPublicMemes(10, 0);
 
   const initialMemes: ExplorePost[] = (rawMemes || []).map((m: any, idx: number) => ({
     id: m.id || `meme-${idx}`,

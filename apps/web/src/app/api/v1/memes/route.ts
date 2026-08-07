@@ -261,6 +261,9 @@ export async function DELETE(req: NextRequest) {
       .where(eq(memes.id, id))
       .returning();
 
+    const { invalidateCacheTag } = await import("@/server/services/cache-server.service");
+    invalidateCacheTag("explore");
+
     return apiSuccess({ message: "Meme successfully deleted", id: deleted[0].id });
   } catch (error: any) {
     console.error("[DELETE /api/v1/memes Error]", error);

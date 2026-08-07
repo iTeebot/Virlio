@@ -75,6 +75,7 @@ export async function findPublicProfiles(options: { limit?: number; offset?: num
   const rawProfiles = await db.query.users.findMany({
     where: isNull(users.deleted_at),
     limit: 50,
+    orderBy: desc(users.contributor_score),
     with: {
       userBadges: {
         columns: {

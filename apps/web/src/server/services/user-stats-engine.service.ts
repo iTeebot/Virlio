@@ -268,6 +268,8 @@ export class UserStatsEngine {
     const pendingBrands = Math.max(0, brandsOwned - verifiedBrands);
 
     // 4. XP Engine Official Rules
+    const unlockedBadgesCount = (userBadgesList || []).length;
+    const badgeUnlockedXP = unlockedBadgesCount * 15;
     const brandCreatedXP = brandsOwned * 10;
     const verifiedBrandXP = verifiedBrands * 25;
     const templateUploadedXP = totalTemplates * 1;
@@ -280,6 +282,7 @@ export class UserStatsEngine {
     const followerXP = followerCount * 2;
 
     const rawTotalXP =
+      badgeUnlockedXP +
       brandCreatedXP +
       verifiedBrandXP +
       templateUploadedXP +
@@ -298,10 +301,11 @@ export class UserStatsEngine {
 
     // 5. XP Breakdown
     const rawBreakdown = [
+      { id: "badge-unlocked", name: "Badges & Achievements Unlocked", category: "Badges", points: badgeUnlockedXP, count: unlockedBadgesCount, color: "bg-purple-600" },
       { id: "brand-created", name: "Brand Workspace Created", category: "Brands", points: brandCreatedXP, count: brandsOwned, color: "bg-blue-600" },
       { id: "verified-brand", name: "Verified Brand Badge", category: "Brands", points: verifiedBrandXP, count: verifiedBrands, color: "bg-emerald-600" },
-      { id: "template-upload", name: "Templates Uploaded & Approved", category: "Templates", points: templateUploadedXP + templateApprovedXP, count: totalTemplates, color: "bg-purple-600" },
-      { id: "template-upvotes", name: "Template Community Upvotes", category: "Templates", points: templateVotesXP, count: templateUpvotes, color: "bg-purple-500" },
+      { id: "template-upload", name: "Templates Uploaded & Approved", category: "Templates", points: templateUploadedXP + templateApprovedXP, count: totalTemplates, color: "bg-purple-500" },
+      { id: "template-upvotes", name: "Template Community Upvotes", category: "Templates", points: templateVotesXP, count: templateUpvotes, color: "bg-purple-400" },
       { id: "meme-generated", name: "Memes Generated", category: "Memes", points: memeGeneratedXP, count: totalMemes, color: "bg-amber-500" },
       { id: "meme-upvotes", name: "Meme Community Upvotes", category: "Memes", points: memeVotesXP, count: memeUpvotes, color: "bg-amber-600" },
       { id: "streak-xp", name: "Daily Streak Rewards", category: "Streaks", points: streakXP, count: currentStreak, color: "bg-indigo-600" },

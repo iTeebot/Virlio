@@ -77,22 +77,23 @@ export const UserAvatar = memo(function UserAvatar({
   const customDimensions = typeof size === "number" ? { width: size, height: size } : undefined;
 
   const { objectPosition, objectFit, cleanUrl } = parseAvatarPosition(currentSrc);
+  const { getAvatarUrl } = require("@/lib/cloudinary/transform");
+  const optimizedUrl = cleanUrl ? getAvatarUrl(cleanUrl, typeof size === "number" ? size : 96) : null;
 
   return (
     <div
       style={customDimensions}
       className={`relative rounded-full overflow-hidden bg-blue-50 border-2 border-white shadow-xs flex items-center justify-center shrink-0 ring-1 ring-gray-200/80 ${sizeClasses} ${className}`}
     >
-      {cleanUrl ? (
+      {optimizedUrl ? (
         <Image
-          src={cleanUrl}
+          src={optimizedUrl}
           alt={`${displayName}'s Avatar`}
           fill
           priority={priority}
           sizes="(max-width: 768px) 96px, 128px"
           style={{ objectFit, objectPosition }}
           className="transition-transform duration-200"
-          unoptimized={cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://")}
         />
       ) : (
         <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-extrabold tracking-wider uppercase select-none">

@@ -494,10 +494,9 @@ export function ExplorePostCard({ post, onRequireAuth }: ExplorePostCardProps) {
         <div className="relative aspect-video w-full rounded-2xl bg-gray-900 overflow-hidden border border-gray-200 flex items-center justify-center">
           {post.image_url ? (
             <Image
-              src={post.image_url}
+              src={require("@/lib/cloudinary/transform").getMemeFeedUrl(post.image_url, 700)}
               alt={displayTitle}
               fill
-              unoptimized
               sizes="(max-width: 768px) 100vw, 700px"
               className="object-contain"
             />

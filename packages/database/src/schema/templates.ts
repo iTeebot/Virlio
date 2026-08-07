@@ -87,4 +87,6 @@ export const templates = pgTable("templates", {
   canonicalSha256Idx: index("templates_canonical_sha256_idx").on(table.canonical_image_sha256),
   perceptualHashIdx: index("templates_perceptual_hash_idx").on(table.perceptual_hash),
   duplicateStatusIdx: index("templates_duplicate_status_idx").on(table.duplicate_status),
+  moderationCreatedIdx: index("templates_moderation_deleted_created_idx").on(table.moderation_status, table.deleted_at, table.created_at),
+  categoryModerationIdx: index("templates_category_moderation_created_idx").on(table.category, table.moderation_status, table.created_at),
 }));

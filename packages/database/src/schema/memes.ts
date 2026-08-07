@@ -63,4 +63,6 @@ export const memes = pgTable("memes", {
   engagementScoreIdx: index("memes_engagement_score_idx").on(table.engagement_score),
   generationIdIdx: index("memes_generation_id_idx").on(table.generation_id),
   statusIdx: index("memes_status_idx").on(table.status),
+  visibilityCreatedIdx: index("memes_visibility_deleted_created_idx").on(table.visibility, table.deleted_at, table.created_at),
+  brandCreatedIdx: index("memes_brand_deleted_created_idx").on(table.brand_id, table.deleted_at, table.created_at),
 }));

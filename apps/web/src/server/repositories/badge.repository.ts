@@ -126,9 +126,13 @@ export async function awardBadgeBySlug(userId: string, badgeSlug: string, custom
 
 export async function hasBadge(userId: string, badgeSlug: string): Promise<boolean> {
   if (!ALLOWED_BADGE_SLUGS.has(badgeSlug)) return false;
-  const userBadgesList = await findByUser(userId);
-  if (!Array.isArray(userBadgesList)) return false;
-  return userBadgesList.some((ub: any) => ub.badge?.slug === badgeSlug || ub.badge_id === badgeSlug);
+  const badge = await findBySlug(badgeSlug);
+  if (!badge) return false;
+
+  const existing = await db.query.userBadges.findFirst({
+    where: and(eq(userBadges.user_id, userId), eq(userBadges.badge_id, badge.id)),
+  });
+  return Boolean(existing);
 }
 
 /**

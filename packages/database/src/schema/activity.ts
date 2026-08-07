@@ -13,6 +13,7 @@ export const activities = pgTable("activities", {
 }, (table) => ({
   activityUserIdx: index("activities_user_idx").on(table.user_id),
   activityCreatedAtIdx: index("activities_created_at_idx").on(table.created_at),
+  activityUserCreatedIdx: index("activities_user_created_idx").on(table.user_id, table.created_at),
 }));
 
 export const notifications = pgTable("notifications", {
@@ -29,4 +30,5 @@ export const notifications = pgTable("notifications", {
   notificationUserIdx: index("notifications_user_idx").on(table.user_id),
   notificationReadAtIdx: index("notifications_read_at_idx").on(table.read_at),
   notificationCreatedAtIdx: index("notifications_created_at_idx").on(table.created_at),
+  notificationUserReadCreatedIdx: index("notifications_user_read_created_idx").on(table.user_id, table.read_at, table.created_at),
 }));

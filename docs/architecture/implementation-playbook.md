@@ -53,7 +53,7 @@ Virlio is undergoing a production-grade performance re-architecture to transform
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Phase 01** | [Observability & Benchmarking](phase-01-observability.md) | **COMPLETED** | Lead Engineer | Baseline Setup | Day 1 |
 | **Phase 02** | [Auth Session Memoization](phase-02-auth-session.md) | **COMPLETED** | Lead Engineer | Phase 01 | Day 2 |
-| **Phase 03** | [Database Indexes & Query Budgets](phase-03-database.md) | **NOT STARTED** | DB Architect | Phase 01 | Day 3 |
+| **Phase 03** | [Database Indexes & Query Budgets](phase-03-database.md) | **COMPLETED** | DB Architect | Phase 01 | Day 3 |
 | **Phase 04** | [SQL Query Optimization](phase-04-query-optimization.md) | **NOT STARTED** | DB Architect | Phase 03 | Days 4–5 |
 | **Phase 05** | [Server Components (RSC) Migration](phase-05-server-components.md) | **NOT STARTED** | Lead Engineer | Phase 02, 04 | Days 6–9 |
 | **Phase 06** | [Next.js Server Cache (`"use cache"`)](phase-06-server-cache.md) | **NOT STARTED** | Lead Engineer | Phase 05 | Days 10–12 |

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, uuid, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, uuid, uniqueIndex, index, jsonb } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { brands } from "./brands";
 import { badgeCategoryEnum, visibilityEnum, streakCategoryEnum, entityTypeEnum } from "./enums";
@@ -25,6 +25,7 @@ export const userBadges = pgTable("user_badges", {
   created_at: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   userBadgeUniqueIdx: uniqueIndex("user_badges_user_badge_idx").on(table.user_id, table.badge_id),
+  userBadgeUnlockedIdx: index("user_badges_user_unlocked_idx").on(table.user_id, table.unlocked_at),
 }));
 
 export const brandBadges = pgTable("brand_badges", {

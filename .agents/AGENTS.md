@@ -10,7 +10,7 @@ Virlio is an AI-powered branded meme & social content automation platform built 
 
 ### Current Performance Architecture Status:
 - **Architectural Specification**: ADR-001 Approved & Archived ([`docs/architecture/implementation-playbook.md`](../docs/architecture/implementation-playbook.md)).
-- **Current Active Phase**: Phase 06 (Next.js Server Cache) — **COMPLETED**. Phase 07 (TanStack Query v5) — READY TO START.
+- **Current Active Phase**: Phase 07 (TanStack Query v5) — **COMPLETED**. Phase 08 (Streaming & Suspense Boundaries) — READY TO START.
 - **Master Playbook**: All 11 architectural phase execution documents live under [`docs/architecture/`](../docs/architecture/).
 
 ---

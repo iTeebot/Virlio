@@ -12,6 +12,7 @@
     "@auth/drizzle-adapter": "^1.11.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "^0.57.2",
+    "@tanstack/react-query": "^5",
     "@vercel/analytics": "^1.6.1",
     "@virlio/ai": "workspace:*",
     "@virlio/database": "workspace:*",

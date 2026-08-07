@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTemplateStore } from "@/providers/template-provider";
 
 export interface UseTemplateVoteInitial {
@@ -13,6 +14,7 @@ export interface UseTemplateVoteInitial {
 }
 
 export function useTemplateVote(templateId: string, initial?: UseTemplateVoteInitial) {
+  const queryClient = useQueryClient();
   const { templatesById, syncTemplates, performVote, isVotePending } = useTemplateStore();
 
   useEffect(() => {
@@ -44,11 +46,23 @@ export function useTemplateVote(templateId: string, initial?: UseTemplateVoteIni
 
   const upvotesCount = existingState?.upvotes_count ?? initial?.upvotes_count ?? 0;
   const publicScore = existingState?.public_score ?? initial?.public_score ?? 0;
-  const isPending = isVotePending(templateId);
+
+  // TanStack Query v5 Mutation for template voting
+  const voteMutation = useMutation({
+    mutationFn: async (type: "upvote" | "downvote") => {
+      return performVote(templateId, type);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["templates"] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+    },
+  });
+
+  const isPending = isVotePending(templateId) || voteMutation.isPending;
 
   const handleVote = async (type: "upvote" | "downvote") => {
-    if (!templateId) return;
-    return performVote(templateId, type);
+    if (!templateId || isPending) return;
+    return voteMutation.mutateAsync(type);
   };
 
   return {

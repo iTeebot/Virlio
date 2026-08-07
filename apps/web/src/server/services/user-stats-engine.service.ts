@@ -14,6 +14,7 @@ import {
 import { db } from "@virlio/database";
 import { users } from "@virlio/database/schema";
 import { eq } from "drizzle-orm";
+import { OFFICIAL_SYSTEM_BADGES } from "@/server/constants/badge-catalog";
 import { activityEngine } from "@/server/services/activity-engine.service";
 import type { ContributionDay, ActivityTimelineEntry } from "@/server/services/activity-engine.service";
 
@@ -42,6 +43,7 @@ export interface DynamicAchievement {
   slug: string;
   description: string;
   icon: string;
+  icon_url?: string;
   unlocked: boolean;
   progress: number; // 0 to 100
   reqCount: number;
@@ -341,7 +343,7 @@ export class UserStatsEngine {
         description: "Official verification mark confirming legitimate business ownership and domain authenticity.",
         icon: "ShieldCheck",
         reqCount: 1,
-        currentCount: verifiedBrands,
+        currentCount: verifiedBrands > 0 || userBrands.some((b: any) => (b.verification_status || "").toLowerCase() === "verified") || userBrands.length > 0 ? 1 : 0,
       },
       {
         id: "top-contributor",
@@ -457,6 +459,7 @@ export class UserStatsEngine {
         slug: def.slug,
         description: def.description,
         icon: def.icon,
+        icon_url: OFFICIAL_SYSTEM_BADGES[def.slug]?.icon_url || "",
         unlocked: isUnlocked,
         progress,
         reqCount: def.reqCount,

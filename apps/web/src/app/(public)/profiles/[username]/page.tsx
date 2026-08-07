@@ -11,6 +11,7 @@ import { ProfileTabSwitcher } from "@/components/profile/profile-tab-switcher";
 import { userRepository, followRepository, brandRepository, memeRepository, templateRepository, badgeRepository } from "@/server/repositories";
 import { authService } from "@/server/services";
 import { userStatsEngine } from "@/server/services/user-stats-engine.service";
+import { OFFICIAL_SYSTEM_BADGES } from "@/server/constants/badge-catalog";
 import {
   Calendar,
   ShieldCheck,
@@ -309,29 +310,46 @@ export default async function UserProfilePage({ params }: ProfilePageProps) {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {achievements.map((a: any) => (
-                <div
-                  key={a.id}
-                  className={`p-3 rounded-2xl border text-center space-y-2 transition ${
-                    a.unlocked
-                      ? "bg-purple-50/50 border-purple-200 text-purple-900"
-                      : "bg-gray-50 border-gray-200 text-gray-400 opacity-60"
-                  }`}
-                  title={a.description}
-                >
-                  <div className="w-8 h-8 rounded-xl mx-auto flex items-center justify-center bg-white border border-gray-200 shadow-2xs">
-                    {a.unlocked ? (
-                      <Award className="w-4 h-4 text-purple-600" />
-                    ) : (
-                      <Lock className="w-4 h-4 text-gray-400" />
-                    )}
+              {achievements.map((a: any) => {
+                const badgeDef = OFFICIAL_SYSTEM_BADGES[a.slug];
+                const badgeImg = badgeDef?.icon_url || a.icon_url;
+
+                return (
+                  <div
+                    key={a.id}
+                    className={`p-3 rounded-2xl border text-center space-y-2 transition flex flex-col justify-between ${
+                      a.unlocked
+                        ? "bg-purple-50/50 border-purple-200 text-purple-900"
+                        : "bg-gray-50 border-gray-200 text-gray-400 opacity-60"
+                    }`}
+                    title={a.description}
+                  >
+                    <div className="relative w-12 h-12 mx-auto flex items-center justify-center pt-1">
+                      {badgeImg ? (
+                        <Image
+                          src={badgeImg}
+                          alt={a.name}
+                          width={48}
+                          height={48}
+                          className={`w-12 h-12 object-contain transition-all ${
+                            a.unlocked ? "drop-shadow-xs" : "grayscale opacity-35"
+                          }`}
+                        />
+                      ) : a.unlocked ? (
+                        <Award className="w-6 h-6 text-purple-600" />
+                      ) : (
+                        <Lock className="w-6 h-6 text-gray-400" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold truncate mt-1">{a.name}</p>
+                      <p className="text-[9px] font-medium text-gray-500">
+                        {a.unlocked ? "Unlocked" : `${a.progress}%`}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-[11px] font-bold truncate">{a.name}</p>
-                  <p className="text-[9px] font-medium text-gray-500">
-                    {a.unlocked ? "Unlocked" : `${a.progress}%`}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

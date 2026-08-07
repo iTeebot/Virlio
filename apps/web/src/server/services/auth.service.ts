@@ -1,18 +1,29 @@
 import { auth } from "@/lib/auth";
+import { cache } from "react";
 
-export async function getCurrentSession() {
+/**
+ * Request-scoped memoized session resolver.
+ * Deduplicates NextAuth auth() calls within a single HTTP request lifecycle.
+ */
+export const getCurrentSession = cache(async () => {
   return await auth();
-}
+});
 
-export async function getCurrentUser() {
-  const session = await auth();
+/**
+ * Request-scoped memoized user resolver.
+ * Deduplicates user lookups within a single HTTP request lifecycle.
+ */
+export const getCurrentUser = cache(async () => {
+  const session = await getCurrentSession();
   if (!session?.user?.id) return null;
-  // This could fetch full user info including stats if needed, or simply return session user
   return session.user;
-}
+});
 
+/**
+ * Require authentication guard reusing memoized session.
+ */
 export async function requireAuthentication() {
-  const session = await auth();
+  const session = await getCurrentSession();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }

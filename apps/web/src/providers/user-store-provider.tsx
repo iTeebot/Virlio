@@ -73,9 +73,30 @@ export function UserStoreProvider({ children }: { children: ReactNode }) {
   }, [hasLoadedInitially]);
 
   useEffect(() => {
-    if (authStatus === "authenticated") {
+    if (authStatus === "authenticated" && session?.user) {
+      const u = session.user as any;
+      const initialUser: UserStoreProfile = {
+        id: u.id || "",
+        name: u.name || "",
+        username: u.username || u.name || "user",
+        email: u.email || "",
+        bio: u.bio || "",
+        country: u.country || "",
+        website: u.website || "",
+        image: u.image || "",
+        avatar_url: u.image || u.avatar_url || "",
+        emailVerified: Boolean(u.emailVerified),
+        account_status: u.account_status || "active",
+        role: u.role || "user",
+      };
+
+      setUser((prev) => prev || initialUser);
+      setAvatarUrl((prev) => prev || u.image || "");
+      setIsEmailVerified((prev) => prev || Boolean(u.emailVerified));
+      setIsLoading(false);
+
       if (!hasLoadedInitially) {
-        fetchUserData(false);
+        fetchUserData(true);
       }
     } else if (authStatus === "unauthenticated") {
       setUser(null);
@@ -85,7 +106,7 @@ export function UserStoreProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       setHasLoadedInitially(false);
     }
-  }, [authStatus, fetchUserData, hasLoadedInitially]);
+  }, [authStatus, session, fetchUserData, hasLoadedInitially]);
 
   const updateUserStore = useCallback((partial: Partial<UserStoreProfile>) => {
     setUser((prev) => {

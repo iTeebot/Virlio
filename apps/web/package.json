@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-node": "^0.57.2",
+    "@vercel/analytics": "^1.6.1",
     "@virlio/ai": "workspace:*",
     "@virlio/database": "workspace:*",
     "@virlio/utils": "workspace:*",
@@ -22,9 +25,6 @@
     "next-auth": "5.0.0-beta.25",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/sdk-node": "^0.57.2",
-    "@vercel/analytics": "^1.5.0",
     "zod": "^3.24.2"
   },
   "optionalDependencies": {

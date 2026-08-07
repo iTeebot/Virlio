@@ -37,23 +37,8 @@ export function HeaderUserDropdown() {
     };
   }, []);
 
-  // Fetch initial avatar & listen to real-time virlio:avatar-updated events
+  // Listen to real-time virlio:avatar-updated events without issuing unneeded network fetches on mount
   useEffect(() => {
-    async function loadAvatar() {
-      if (session?.user?.username) {
-        try {
-          const res = await fetch(`/api/v1/users/check-username?username=${encodeURIComponent(session.user.username)}`);
-          if (res.ok) {
-            const json = await res.json();
-            if (json.data?.user?.image) {
-              setDbAvatar(json.data.user.image);
-            }
-          }
-        } catch (e) {}
-      }
-    }
-    loadAvatar();
-
     const handleAvatarUpdate = (e: any) => {
       if (e.detail?.avatarUrl) {
         setDbAvatar(e.detail.avatarUrl);
@@ -68,7 +53,7 @@ export function HeaderUserDropdown() {
         window.removeEventListener("virlio:avatar-updated", handleAvatarUpdate);
       }
     };
-  }, [session?.user?.username]);
+  }, []);
 
   if (!session?.user) return null;
 

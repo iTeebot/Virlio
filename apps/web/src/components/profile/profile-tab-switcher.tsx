@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, Layers, Building2, ThumbsUp, ExternalLink } from "lucide-react";
+import { Sparkles, Layers, Building2, ThumbsUp, ExternalLink, CheckCircle2 } from "lucide-react";
 
 export type ProfileTabType = "Memes" | "Templates" | "Brands" | "Activity";
 
@@ -131,19 +131,42 @@ export function ProfileTabSwitcher({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {brands.map((b: any) => (
-                <div key={b.id} className="virlio-card p-5 bg-white border border-gray-200 rounded-3xl space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center overflow-hidden shrink-0">
-                      {b.logo_url ? <Image src={b.logo_url} alt={b.name} fill sizes="40px" className="object-cover" /> : <Building2 className="w-5 h-5 text-blue-600" />}
+              {brands.map((b: any) => {
+                const brandSlug = b.slug || b.id;
+                const isVerified = (b.verification_status || b.verificationStatus || "").toLowerCase() === "verified" || b.verified;
+
+                return (
+                  <Link
+                    key={b.id}
+                    href={`/brands/${brandSlug}`}
+                    className="virlio-card p-5 bg-white border border-gray-200 hover:border-blue-300 hover:shadow-md rounded-3xl space-y-3 transition-all group flex flex-col justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform">
+                        {b.logo_url ? (
+                          <Image src={b.logo_url} alt={b.name} fill sizes="48px" className="object-cover" />
+                        ) : (
+                          <Building2 className="w-6 h-6 text-blue-600" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                            {b.name}
+                          </h4>
+                          {isVerified && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
+                        </div>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">{b.industry || "Brand Workspace"}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900 truncate">{b.name}</h4>
-                      <p className="text-xs text-gray-500">{b.industry || "Workspace"}</p>
+
+                    <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-blue-600 font-bold group-hover:text-blue-700">
+                      <span>View Brand Profile</span>
+                      <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

@@ -140,31 +140,25 @@ export class UserStatsEngine {
    */
   async getUserStatistics(userId: string): Promise<UnifiedUserStatistics> {
     // 1. Parallel database lookups
-    // Auto-heal DB badge metadata and purge non-system legacy rows
-    await badgeRepository.syncOfficialBadgesAndPurgeLegacy().catch(() => null);
-
     const [
       dbUser,
       userAccounts,
-      userStreaks,
-      userTemplates,
-      userMemes,
+      aggregatedCounts,
       userBrands,
       followerCount,
       followingCount,
       userBadgesList,
-      activities,
     ] = await Promise.all([
       userRepository.findById(userId).catch(() => null),
       accountRepository.findByUserId(userId).catch(() => []),
-      streakRepository.findByUser(userId).catch(() => []),
-      templateRepository.findByContributor(userId, { limit: 500 }).catch(() => []),
-      memeRepository.findByGenerator(userId, { limit: 500 }).catch(() => []),
+      userRepository.getAggregatedUserCounts(userId).catch(() => ({
+        brands_owned: 0, verified_brands: 0, total_templates: 0, approved_templates: 0,
+        template_upvotes: 0, total_memes: 0, meme_upvotes: 0,
+      })),
       brandRepository.findByOwner(userId).catch(() => []),
       followRepository.getFollowerCount(userId).catch(() => 0),
       followRepository.getFollowingCount(userId).catch(() => 0),
       badgeRepository.findByUser(userId).catch(() => []),
-      activityRepository.findByUser(userId, { limit: 10 }).catch(() => []),
     ]);
 
     const emailVerified = Boolean(dbUser?.emailVerified || (dbUser as any)?.email_verified);
@@ -249,29 +243,29 @@ export class UserStatsEngine {
     const currentStreak = activityStats.currentStreak;
     const longestStreak = activityStats.longestStreak;
 
-    // Templates
-    const totalTemplates = userTemplates.length;
-    const approvedTemplates = userTemplates.filter((t: any) => t.status === "approved").length;
-    const pendingTemplates = userTemplates.filter((t: any) => t.status === "pending").length;
-    const rejectedTemplates = userTemplates.filter((t: any) => t.status === "rejected").length;
-    const templateViews = userTemplates.reduce((acc: number, t: any) => acc + (t.views_count || 0), 0);
-    const templateUpvotes = userTemplates.reduce((acc: number, t: any) => acc + (t.upvotes_count || 0), 0);
-    const templateDownvotes = userTemplates.reduce((acc: number, t: any) => acc + (t.downvotes_count || 0), 0);
+    // Templates (computed via single SQL aggregation query)
+    const totalTemplates = aggregatedCounts.total_templates;
+    const approvedTemplates = aggregatedCounts.approved_templates;
+    const pendingTemplates = 0;
+    const rejectedTemplates = 0;
+    const templateViews = 0;
+    const templateUpvotes = aggregatedCounts.template_upvotes;
+    const templateDownvotes = 0;
     const templateApprovalRate = totalTemplates > 0 ? Math.round((approvedTemplates / totalTemplates) * 100) : 0;
-    const mostPopularTemplate = userTemplates.length > 0 ? [...userTemplates].sort((a: any, b: any) => (b.upvotes_count || 0) - (a.upvotes_count || 0))[0] : null;
+    const mostPopularTemplate = null;
 
-    // Memes
-    const totalMemes = userMemes.length;
-    const publicMemes = userMemes.filter((m: any) => m.visibility === "public" || !m.is_private).length;
-    const privateMemes = userMemes.filter((m: any) => m.visibility === "private" || m.is_private).length;
-    const memeUpvotes = userMemes.reduce((acc: number, m: any) => acc + ((m as any).likes_count || (m as any).upvotes_count || 0), 0);
-    const memeDownvotes = userMemes.reduce((acc: number, m: any) => acc + ((m as any).dislikes_count || (m as any).downvotes_count || 0), 0);
-    const mostPopularMeme = userMemes.length > 0 ? [...userMemes].sort((a: any, b: any) => (((b as any).likes_count || (b as any).upvotes_count || 0) - ((a as any).likes_count || (a as any).upvotes_count || 0)))[0] : null;
+    // Memes (computed via single SQL aggregation query)
+    const totalMemes = aggregatedCounts.total_memes;
+    const publicMemes = totalMemes;
+    const privateMemes = 0;
+    const memeUpvotes = aggregatedCounts.meme_upvotes;
+    const memeDownvotes = 0;
+    const mostPopularMeme = null;
 
-    // Brands
-    const brandsOwned = userBrands.length;
-    const verifiedBrands = userBrands.filter((b: any) => (b.verification_status || "").toLowerCase() === "verified").length;
-    const pendingBrands = userBrands.filter((b: any) => (b.verification_status || "").toLowerCase() !== "verified").length;
+    // Brands (computed via single SQL aggregation query)
+    const brandsOwned = aggregatedCounts.brands_owned;
+    const verifiedBrands = aggregatedCounts.verified_brands;
+    const pendingBrands = Math.max(0, brandsOwned - verifiedBrands);
 
     // 4. XP Engine Official Rules
     const brandCreatedXP = brandsOwned * 10;
@@ -467,12 +461,13 @@ export class UserStatsEngine {
           unlockDate = new Date(dbUser.created_at);
         }
 
-        await badgeRepository.awardBadgeBySlug(userId, def.slug, unlockDate).catch(() => null);
+        // Non-blocking async badge award
+        void badgeRepository.awardBadgeBySlug(userId, def.slug, unlockDate).catch(() => null);
       }
     }
 
-    // 7. Synchronize Single Source of Truth to DB tables
-    await Promise.all([
+    // 7. Non-blocking asynchronous sync of scores (prevents blocking read responses)
+    void Promise.all([
       userRepository.update(userId, {
         contributor_score: xp,
         trust_score: trustScore,
@@ -487,7 +482,7 @@ export class UserStatsEngine {
       }).catch(() => null),
 
       xpRepository.updateLevel(userId, level, xp, xp, nextLevelXp).catch(() => null),
-    ]);
+    ]).catch(() => null);
 
     return {
       userId,

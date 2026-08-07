@@ -1,6 +1,6 @@
 import { db } from "@virlio/database";
 import { users, templates } from "@virlio/database/schema";
-import { eq, isNull, desc, and } from "drizzle-orm";
+import { eq, isNull, desc, and, sql } from "drizzle-orm";
 import type { User } from "@virlio/database/types";
 
 /**
@@ -130,4 +130,31 @@ export async function updateLastSeen(id: string) {
     .update(users)
     .set({ last_seen_at: new Date() })
     .where(eq(users.id, id));
+}
+
+/**
+ * Single-query SQL aggregation for user totals (templates, memes, brands)
+ */
+export async function getAggregatedUserCounts(userId: string) {
+  const result: any = await db.execute(sql`
+    SELECT
+      (SELECT COUNT(*) FROM brands WHERE owner_id = ${userId})::int AS brands_owned,
+      (SELECT COUNT(*) FROM brands WHERE owner_id = ${userId} AND LOWER(verification_status) = 'verified')::int AS verified_brands,
+      (SELECT COUNT(*) FROM templates WHERE uploaded_by = ${userId} AND deleted_at IS NULL)::int AS total_templates,
+      (SELECT COUNT(*) FROM templates WHERE uploaded_by = ${userId} AND moderation_status = 'approved' AND deleted_at IS NULL)::int AS approved_templates,
+      (SELECT COALESCE(SUM(upvotes_count), 0) FROM templates WHERE uploaded_by = ${userId} AND deleted_at IS NULL)::int AS template_upvotes,
+      (SELECT COUNT(*) FROM memes WHERE generator_id = ${userId} AND deleted_at IS NULL)::int AS total_memes,
+      (SELECT COALESCE(SUM(engagement_score), 0) FROM memes WHERE generator_id = ${userId} AND deleted_at IS NULL)::int AS meme_upvotes
+  `);
+
+  const row = (result.rows?.[0] || result[0] || {}) as any;
+  return {
+    brands_owned: Number(row.brands_owned || 0),
+    verified_brands: Number(row.verified_brands || 0),
+    total_templates: Number(row.total_templates || 0),
+    approved_templates: Number(row.approved_templates || 0),
+    template_upvotes: Number(row.template_upvotes || 0),
+    total_memes: Number(row.total_memes || 0),
+    meme_upvotes: Number(row.meme_upvotes || 0),
+  };
 }

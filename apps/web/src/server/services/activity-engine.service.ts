@@ -152,10 +152,17 @@ export class ActivityEngine {
    * Returns { currentStreak, longestStreak } derived from consecutive calendar days.
    */
   async calculateStreaksFromEvents(userId: string): Promise<{ currentStreak: number; longestStreak: number }> {
-    // Fetch all activity events for this user
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    // Fetch activity events within the 90-day window using composite index
     const allEvents = await db.query.activities.findMany({
-      where: eq(activities.user_id, userId),
+      where: and(
+        eq(activities.user_id, userId),
+        gte(activities.created_at, ninetyDaysAgo)
+      ),
       orderBy: desc(activities.created_at),
+      limit: 250,
     });
 
     if (allEvents.length === 0) {

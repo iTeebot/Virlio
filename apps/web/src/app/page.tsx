@@ -27,29 +27,23 @@ export default function Home() {
         {/* Explicit Application Purpose & OAuth Notice Section */}
         <AppPurposeSection />
 
-        {/* Concise Trust Cards */}
-        <TrustSection />
-
         {/* 6-Step Workflow */}
         <HowItWorks />
 
         {/* Modern Feature Cards */}
         <FeatureShowcase />
 
-        {/* Contributor Ecosystem */}
-        <CommunitySection />
-
         {/* Template Library Preview */}
         <TemplatesPreview />
 
-        {/* Category Cards */}
-        <CategoriesSection />
-
-        {/* Industry Benefit Cards */}
-        <IndustriesSection />
-
-        {/* Digital Growth Audit Recommendations */}
-        <DigitalGrowthSection />
+        {/* Secondary Ecosystem & Category Sections (Desktop Expanded) */}
+        <div className="hidden md:block">
+          <TrustSection />
+          <CommunitySection />
+          <CategoriesSection />
+          <IndustriesSection />
+          <DigitalGrowthSection />
+        </div>
 
         {/* SEO FAQ Accordion */}
         <FaqSection />

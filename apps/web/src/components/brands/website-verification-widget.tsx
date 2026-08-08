@@ -33,13 +33,22 @@ export function WebsiteVerificationWidget({
   const [method, setMethod] = useState<"dns_txt" | "html_meta">("dns_txt");
   const [verifying, setVerifying] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [localUrl, setLocalUrl] = useState(websiteUrl || "");
+
+  // Keep local URL synced with incoming props if changed upstream
+  React.useEffect(() => {
+    if (websiteUrl !== undefined && websiteUrl !== localUrl) {
+      setLocalUrl(websiteUrl);
+    }
+  }, [websiteUrl]);
+
   const [result, setResult] = useState<WebsiteVerificationResult | null>(() => {
     if (initialVerified || initialToken) {
       return {
         verified: initialVerified,
         method: "dns_txt",
         verifiedAt: new Date().toISOString(),
-        domain: websiteUrl.replace(/^https?:\/\//i, "").replace(/\/.*$/, ""),
+        domain: (websiteUrl || "").replace(/^https?:\/\//i, "").replace(/\/.*$/, ""),
         token: initialToken || "",
         provider: { name: "DNS Host", instructions: [] },
       };
@@ -48,14 +57,15 @@ export function WebsiteVerificationWidget({
   });
 
   const handleRunVerification = async () => {
-    if (!websiteUrl || !websiteUrl.trim()) return;
+    const targetUrl = (localUrl || websiteUrl || "").trim();
+    if (!targetUrl) return;
     setVerifying(true);
 
     try {
       const res = await fetch("/api/v1/brands/verify-website", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ website: websiteUrl.trim() }),
+        body: JSON.stringify({ website: targetUrl }),
       });
 
       const json = await res.json();
@@ -69,7 +79,7 @@ export function WebsiteVerificationWidget({
           verified: false,
           method: null,
           verifiedAt: null,
-          domain: websiteUrl,
+          domain: targetUrl,
           token: "",
           provider: { name: "DNS Host", instructions: [] },
           error: json.message || "Failed to check website verification.",
@@ -80,7 +90,7 @@ export function WebsiteVerificationWidget({
         verified: false,
         method: null,
         verifiedAt: null,
-        domain: websiteUrl,
+        domain: targetUrl,
         token: "",
         provider: { name: "DNS Host", instructions: [] },
         error: "Network error checking verification status.",
@@ -97,12 +107,13 @@ export function WebsiteVerificationWidget({
   };
 
   const isVerified = result?.verified;
+  const currentUrlValue = localUrl;
 
   return (
-    <div className="p-5 bg-white border border-gray-200 rounded-2xl space-y-4 shadow-xs">
+    <div className="p-4 sm:p-5 bg-white border border-gray-200 rounded-2xl space-y-4 shadow-xs">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Globe className="w-5 h-5 text-emerald-600" />
+          <Globe className="w-5 h-5 text-emerald-600 shrink-0" />
           <h3 className="text-sm font-bold text-gray-900">Website Ownership Verification</h3>
         </div>
 
@@ -125,22 +136,27 @@ export function WebsiteVerificationWidget({
       {/* Website Input */}
       <div>
         <label className="block text-xs font-semibold text-gray-700 mb-1">Official Website URL</label>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
           <input
             type="url"
-            value={websiteUrl}
+            value={currentUrlValue}
             onChange={(e) => {
-              if (onWebsiteChange) onWebsiteChange(e.target.value);
+              const val = e.target.value;
+              setLocalUrl(val);
+              if (onWebsiteChange) onWebsiteChange(val);
               setResult(null);
             }}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder="https://yourbrand.com"
-            className="flex-1 px-3.5 py-2.5 text-sm bg-white border border-gray-300 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 shadow-xs"
+            className="flex-1 w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 shadow-xs"
           />
           <button
             type="button"
             onClick={handleRunVerification}
-            disabled={verifying || !websiteUrl.trim()}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-xs"
+            disabled={verifying || !currentUrlValue.trim()}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-xs whitespace-nowrap shrink-0"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${verifying ? "animate-spin" : ""}`} />
             {verifying ? "Checking..." : isVerified ? "Verify Again" : "Start Verification"}

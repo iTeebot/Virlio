@@ -379,9 +379,9 @@ export function Step6SocialComponent({ data, onChange }: Step6Props) {
                 </div>
 
                 {/* Input & Verify Action */}
-                <div className="flex gap-2">
-                  <div className="flex flex-1 rounded-xl shadow-xs">
-                    <span className="inline-flex items-center px-2.5 text-xs bg-gray-50 border border-r-0 border-gray-300 text-gray-500 rounded-l-xl select-none font-medium">
+                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                  <div className="flex flex-1 rounded-xl shadow-xs min-w-0">
+                    <span className="inline-flex items-center px-2.5 text-xs bg-gray-50 border border-r-0 border-gray-300 text-gray-500 rounded-l-xl select-none font-medium truncate max-w-[130px] sm:max-w-none">
                       {p.prefix}
                     </span>
                     <input
@@ -389,6 +389,9 @@ export function Step6SocialComponent({ data, onChange }: Step6Props) {
                       value={state.rawInput}
                       onChange={(e) => handleInputChange(p.id, e.target.value)}
                       disabled={state.confirmed}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -396,7 +399,7 @@ export function Step6SocialComponent({ data, onChange }: Step6Props) {
                         }
                       }}
                       placeholder={p.placeholder}
-                      className="flex-1 px-3 py-2 text-xs bg-white border border-gray-300 text-gray-900 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-100"
+                      className="flex-1 min-w-0 px-3 py-2 text-xs bg-white border border-gray-300 text-gray-900 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-100"
                     />
                   </div>
 
@@ -405,7 +408,7 @@ export function Step6SocialComponent({ data, onChange }: Step6Props) {
                       type="button"
                       onClick={() => triggerVerification(p.id, state.rawInput)}
                       disabled={state.status === "checking" || !state.rawInput.trim()}
-                      className="px-3 py-2 text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      className="px-3.5 py-2 text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50 shrink-0 text-center"
                     >
                       Verify
                     </button>
@@ -413,9 +416,9 @@ export function Step6SocialComponent({ data, onChange }: Step6Props) {
                     <button
                       type="button"
                       onClick={() => handleResetVerification(p.id)}
-                      className="px-3 py-2 text-xs font-semibold bg-gray-50 text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+                      className="px-3.5 py-2 text-xs font-semibold bg-gray-50 text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors shrink-0 text-center"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
+                      <Edit3 className="w-3.5 h-3.5 mx-auto" />
                     </button>
                   )}
                 </div>

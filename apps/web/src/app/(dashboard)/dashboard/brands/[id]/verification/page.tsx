@@ -231,7 +231,8 @@ export default function BrandVerificationSubPage() {
 
       {/* 4. Interactive Domain Ownership Verification Widget */}
       <WebsiteVerificationWidget
-        websiteUrl={currentBrand.website || ""}
+        websiteUrl={verifEvidence.website || currentBrand.website || ""}
+        onWebsiteChange={(url) => setVerifEvidence((prev: any) => ({ ...prev, website: url }))}
         initialVerified={isVerified}
         initialToken={
           currentBrand.verification?.evidence_data?.dns_txt_record ||

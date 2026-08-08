@@ -357,6 +357,7 @@ export function MemePipelineFlow() {
         height: CANVAS_H * scale,
         position: "relative",
         overflow: "hidden",
+        touchAction: "pan-y",
       }}
     >
       <div
@@ -369,6 +370,7 @@ export function MemePipelineFlow() {
           transform: `scale(${scale})`,
           transformOrigin: "top left",
           userSelect: "none",
+          touchAction: "pan-y",
         }}
       >
         {/* EDGES (Solid color strokes - NO gradients per project rules) */}

@@ -157,6 +157,7 @@ export function Step7VerificationComponent({ data, onChange, brandContext, socia
         {/* Method 1: Website Ownership Verification Component */}
         <WebsiteVerificationWidget
           websiteUrl={websiteUrl}
+          onWebsiteChange={(url) => onChange({ website: url } as any)}
           initialVerified={Boolean(data.dns_txt_record || data.meta_tag)}
           initialToken={data.dns_txt_record || data.meta_tag || ""}
           onVerificationUpdate={(res) => {

@@ -15,7 +15,7 @@ export function CtaSection() {
           </p>
           <div className="mt-8 flex justify-center">
             <Link
-              href="/dashboard/generator"
+              href="/generate"
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 px-8 py-4 text-base font-semibold text-white transition-colors shadow-xs"
             >
               <span>Create Your Verified Brand Profile</span>

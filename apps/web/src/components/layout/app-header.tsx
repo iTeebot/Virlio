@@ -117,7 +117,7 @@ export const AppHeader = memo(function AppHeader({ variant }: AppHeaderProps) {
             <div className="flex items-center gap-3">
               {isDashboardView ? (
                 <Link
-                  href="/dashboard/generator"
+                  href="/dashboard/memes/create"
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white shadow-xs transition-colors whitespace-nowrap"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -125,7 +125,7 @@ export const AppHeader = memo(function AppHeader({ variant }: AppHeaderProps) {
                 </Link>
               ) : (
                 <Link
-                  href="/dashboard/generator"
+                  href="/generate"
                   className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors shadow-xs whitespace-nowrap"
                 >
                   <span>Generate Meme</span>
@@ -145,7 +145,7 @@ export const AppHeader = memo(function AppHeader({ variant }: AppHeaderProps) {
                 Sign In
               </Link>
               <Link
-                href="/dashboard/generator"
+                href="/generate"
                 className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors shadow-xs whitespace-nowrap"
               >
                 <span>Generate Free Meme</span>

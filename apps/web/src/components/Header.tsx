@@ -21,17 +21,14 @@ export default function Header() {
             <Link href="#features" className="text-sm text-muted hover:underline">
               Features
             </Link>
-            <Link href="#templates" className="text-sm text-muted hover:underline">
+            <Link href="/templates" className="text-sm text-muted hover:underline">
               Templates
             </Link>
-            <Link href="/gallery" className="text-sm text-muted hover:underline">
-              Gallery
+            <Link href="/explore" className="text-sm text-muted hover:underline">
+              Explore
             </Link>
             <Link href="/leaderboard" className="text-sm text-muted hover:underline">
               Leaderboard
-            </Link>
-            <Link href="/blog" className="text-sm text-muted hover:underline">
-              Blog
             </Link>
             <Link href="/pricing" className="text-sm text-muted hover:underline">
               Pricing
@@ -39,7 +36,7 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/signin" className="text-sm text-muted hover:underline">
+            <Link href="/login" className="text-sm text-muted hover:underline">
               Sign In
             </Link>
             <Link

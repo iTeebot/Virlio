@@ -82,6 +82,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       .from(brandMembers)
       .where(and(eq(brandMembers.brand_id, brandId), isNull(brandMembers.deleted_at)));
 
+    const { brandRepository } = await import("@/server/repositories");
+    const { calculateBrandTrustScore } = await import("@/lib/services/brand-trust-score.service");
+    const verification = await brandRepository.getVerification(brandId);
+    const scoreResult = calculateBrandTrustScore(brand, verification?.evidence_data || {});
+    const canonicalScore = brand.ai_confidence_score || scoreResult.trustScore;
+
     return apiSuccess({
       brand_id: brandId,
       total_memes,
@@ -93,7 +99,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       total_views,
       followers_count: 0,
       managers_count: membersCount[0]?.count || 1,
-      brand_score: brand.brand_score || 100,
+      brand_score: canonicalScore,
+      ai_confidence_score: canonicalScore,
       verification_status: brand.verification_status,
       most_used_template,
       top_performing_meme: topMeme,

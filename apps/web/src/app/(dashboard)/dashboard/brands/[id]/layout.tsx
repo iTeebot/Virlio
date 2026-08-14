@@ -17,9 +17,11 @@ export default async function BrandLayout({
     redirect("/sign-in");
   }
 
-  // Fetch active brand and user's brand list
-  const userBrands = await brandService.getByOwner(session.user.id);
-  const currentBrand = userBrands.find((b: any) => b.id === id || b.slug === id);
+  // Fetch active brand profile and user's brand list via single canonical methods
+  const [currentBrand, userBrands] = await Promise.all([
+    brandService.getBrandProfile(id, session.user.id),
+    brandService.getByOwner(session.user.id),
+  ]);
 
   if (!currentBrand) {
     notFound();

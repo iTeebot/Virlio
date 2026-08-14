@@ -1,7 +1,5 @@
-/**
- * Architecture Route Stub: /public-profiles
- * Pure structural placeholder for Next.js App Router static compilation.
- */
+import { permanentRedirect } from "next/navigation";
+
 export default function PublicProfilesPage() {
-  return null;
+  permanentRedirect("/contributors");
 }

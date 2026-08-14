@@ -58,8 +58,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       verification_status: dbStatus as any,
       verification_reason: `Trust score: ${confidenceScore} / 100 PTS. Status: ${dbStatus.toUpperCase()}`,
       ai_confidence_score: confidenceScore,
+      brand_score: confidenceScore,
       digital_presence_score: confidenceScore,
     });
+
+    const { invalidateCacheTag } = await import("@/server/services/cache-server.service");
+    if (brand.slug) invalidateCacheTag(`brand:${brand.slug}`);
+    invalidateCacheTag(`brand:${brand.id}`);
 
     await brandRepository.createAuditLog(brand.id, session.user.id, "RUN_VERIFICATION_CHECK", {
       score: confidenceScore,

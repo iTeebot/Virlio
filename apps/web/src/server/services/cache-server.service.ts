@@ -38,39 +38,34 @@ export const getCachedPublicMemes = (limit: number = 10, offset: number = 0) =>
   )();
 
 /**
- * Cached User Profile Data
+ * Cached User Profile Data (Delegates to canonical userService.getPublicUserProfile)
  */
 export const getCachedUserProfile = (username: string) =>
   unstable_cache(
     async () => {
-      const dbUser = await userRepository.findByUsername(username);
-      if (!dbUser) return null;
-
-      const [stats, userBrands, userMemes, userTemplates, userBadges, followerCount, followingCount] = await Promise.all([
-        userStatsEngine.getUserStatistics(dbUser.id),
-        brandRepository.findByOwner(dbUser.id).catch(() => []),
-        memeRepository.findByGenerator(dbUser.id, { limit: 50 }).catch(() => []),
-        templateRepository.findByContributor(dbUser.id, { limit: 50 }).catch(() => []),
-        badgeRepository.findByUser(dbUser.id).catch(() => []),
-        followRepository.getFollowerCount(dbUser.id).catch(() => 0),
-        followRepository.getFollowingCount(dbUser.id).catch(() => 0),
-      ]);
-
-      return {
-        dbUser,
-        stats,
-        userBrands,
-        userMemes,
-        userTemplates,
-        userBadges,
-        followerCount,
-        followingCount,
-      };
+      const { userService } = await import("@/server/services");
+      return userService.getPublicUserProfile(username);
     },
     [`user-profile-${username}`],
     {
       revalidate: CACHE_LIFETIMES.PROFILE,
       tags: [CACHE_TAGS.PROFILE(username)],
+    }
+  )();
+
+/**
+ * Cached Brand Profile Data (Delegates to canonical brandService.getBrandProfile)
+ */
+export const getCachedBrandProfile = (slug: string) =>
+  unstable_cache(
+    async () => {
+      const { brandService } = await import("@/server/services");
+      return brandService.getBrandProfile(slug);
+    },
+    [`brand-profile-${slug}`],
+    {
+      revalidate: CACHE_LIFETIMES.BRAND,
+      tags: [CACHE_TAGS.BRAND(slug)],
     }
   )();
 

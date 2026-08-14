@@ -1,13 +1,6 @@
 import React from "react";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import {
-  userRepository,
-  memeRepository,
-  brandRepository,
-} from "@/server/repositories";
-import { userStatsEngine } from "@/server/services/user-stats-engine.service";
-import { activityEngine } from "@/server/services/activity-engine.service";
+import { userService, authService } from "@/server/services";
 import { OverviewHeader } from "@/components/dashboard/overview-header";
 import { OverviewStats } from "@/components/dashboard/overview-stats";
 import { OverviewRecentMemes } from "@/components/dashboard/overview-recent-memes";
@@ -18,7 +11,7 @@ import { OverviewQuickActions } from "@/components/dashboard/overview-quick-acti
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const session = await auth();
+  const session = await authService.getCurrentSession();
 
   if (!session?.user?.id) {
     redirect("/login");
@@ -26,43 +19,34 @@ export default async function OverviewPage() {
 
   const userId = session.user.id;
 
-  // Server-side parallel data fetching from single source of truth
-  const [dbUser, userStats, userMemes, userBrands, rawActivities] = await Promise.all([
-    userRepository.findById(userId).catch(() => null),
-    userStatsEngine.getUserStatistics(userId).catch(() => null),
-    memeRepository.findByGenerator(userId, { limit: 6 }).catch(() => []),
-    brandRepository.findByOwner(userId).catch(() => []),
-    activityEngine.getActivityTimeline(userId, 5).catch(() => []),
-  ]);
+  // Single canonical data access for authenticated user profile & overview stats
+  const profileData = await userService.getCurrentUserProfile(userId);
 
-  const userActivities = rawActivities.map((a) => ({
-    id: a.id,
-    activity_type: a.type as any,
-    created_at: a.created_at,
-    metadata: a.metadata,
-    action: a.label,
-    details: { message: a.label },
-  }));
+  if (!profileData) {
+    redirect("/login");
+  }
+
+  const { user, stats, userBrands, userMemes, userActivities } = profileData;
 
   const userProfile = {
     id: userId,
-    name: session.user.name || dbUser?.name || null,
-    username: dbUser?.username || session.user.username || null,
-    email: session.user.email || dbUser?.email || null,
-    image: session.user.image || dbUser?.image || null,
-    role: dbUser?.role || session.user.role || "user",
-    trust_score: userStats?.trustScore ?? dbUser?.trust_score ?? 100,
-    contributor_score: userStats?.xp ?? dbUser?.contributor_score ?? 0,
-    account_status: dbUser?.account_status || "active",
+    name: session.user.name || user.name || null,
+    username: user.username || session.user.username || null,
+    email: session.user.email || user.email || null,
+    image: session.user.image || user.image || null,
+    role: user.role || session.user.role || "user",
+    trust_score: user.trust_score,
+    contributor_score: user.contributor_score,
+    account_status: user.account_status,
   };
 
   const overviewStats = {
-    totalMemes: userStats?.memes.total ?? userMemes.length,
+    totalMemes: stats?.memes.total ?? userMemes.length,
     totalBrands: userBrands.length,
-    totalUpvotes: (userStats?.templates.upvotes || 0) + (userStats?.memes.upvotes || 0),
-    currentStreak: userStats?.currentStreak ?? 0,
-    level: userStats?.level ?? 1,
-    xpPoints: userStats?.xp ?? 0,
+    totalUpvotes: (stats?.templates.upvotes || 0) + (stats?.memes.upvotes || 0),
+    currentStreak: stats?.currentStreak ?? 0,
+    level: stats?.level ?? 1,
+    xpPoints: stats?.xp ?? 0,
   };
 
   return (

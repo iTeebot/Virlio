@@ -104,121 +104,145 @@ export class BrandAIService {
   /**
    * Calculates a confidence-based verification score across 12 parameters.
    */
+  /**
+   * Calculates a confidence-based verification score across canonical 100-point parameters.
+   */
   static calculateVerificationConfidence(brand: Record<string, any>, evidence: Record<string, any>): VerificationConfidenceResult {
     let score = 0;
     const breakdown: Record<string, { score: number; maxScore: number; detail: string }> = {};
     const reasons: string[] = [];
     const recommendations: string[] = [];
 
-    // 1. Contact Info (Email & Phone) - Max 20 points
-    let contactScore = 0;
-    if (evidence.emailVerified || brand.business_email || brand.contact_email) {
-      contactScore += 10;
-      reasons.push("Business email address verified.");
+    // 1. Identity & Contact (Email, Phone, Website Added) - Max 20 points
+    let identityScore = 0;
+    const isEmailVerified = Boolean(evidence.emailVerified || evidence.email_verified || brand.business_email || brand.contact_email);
+    if (isEmailVerified) {
+      identityScore += 10;
+      reasons.push("Business email verified (+10 PTS)");
     } else {
-      recommendations.push("Provide a verified business contact email address.");
+      recommendations.push("Provide a verified business contact email (+10 PTS)");
     }
 
-    if (evidence.phoneVerified || brand.business_phone || brand.whatsapp_business) {
-      contactScore += 10;
-      reasons.push("Business phone / WhatsApp Business number provided.");
+    const hasPhone = Boolean(evidence.phoneVerified || brand.business_phone || brand.whatsapp_business);
+    if (hasPhone) {
+      identityScore += 5;
+      reasons.push("Business phone / WhatsApp confirmed (+5 PTS)");
     } else {
-      recommendations.push("Add a WhatsApp Business phone number.");
+      recommendations.push("Add a WhatsApp Business phone number (+5 PTS)");
     }
-    breakdown.contactInfo = { score: contactScore, maxScore: 20, detail: "Email & Phone contact points" };
-    score += contactScore;
 
-    // 2. Physical & Storefront Proof (Non-Digital Support) - Max 25 points
-    let physicalScore = 0;
-    const photos = evidence.storefront_photos || evidence.storefrontPhotos || [];
-    if (photos.length >= 2) {
-      physicalScore += 25;
-      reasons.push("Multiple storefront/office photos submitted.");
-    } else if (photos.length === 1) {
-      physicalScore += 15;
-      reasons.push("Storefront photo submitted.");
-    } else if (evidence.business_card_url || evidence.catalog_url || evidence.menu_url) {
-      physicalScore += 15;
-      reasons.push("Business card/catalog document provided.");
+    const websiteUrl = String(brand.website || evidence.website || "").trim();
+    if (websiteUrl) {
+      identityScore += 5;
+      reasons.push("Official brand website domain provided (+5 PTS)");
     } else {
-      recommendations.push("Upload 1-2 storefront or business card photos to increase verification confidence.");
+      recommendations.push("Add your official website URL (+5 PTS)");
     }
-    breakdown.physicalEvidence = { score: physicalScore, maxScore: 25, detail: "Storefront & office proof" };
-    score += physicalScore;
+    breakdown.identity = { score: identityScore, maxScore: 20, detail: "Email, Phone, and Domain identity" };
+    score += identityScore;
 
-    // 3. Social Media Presence - Max 25 points
-    let socialScore = 0;
+    // 2. Ownership Verification (DNS TXT / HTML Meta Tag & HTTPS) - Max 22 points
+    let ownershipScore = 0;
+    const isDnsVerified = Boolean(evidence.dns_txt_record || evidence.meta_tag || brand.verification_status === "verified");
+    if (isDnsVerified) {
+      ownershipScore += 20;
+      reasons.push("Website ownership confirmed via DNS TXT / Meta Tag (+20 PTS)");
+    } else if (websiteUrl) {
+      recommendations.push("Verify domain ownership via DNS TXT record or HTML meta tag (+20 PTS)");
+    }
+
+    const isHttps = websiteUrl.toLowerCase().startsWith("https://");
+    if (isHttps) {
+      ownershipScore += 2;
+      reasons.push("Secure HTTPS SSL protocol (+2 PTS)");
+    }
+    breakdown.ownership = { score: ownershipScore, maxScore: 22, detail: "Domain ownership & HTTPS encryption" };
+    score += ownershipScore;
+
+    // 3. Brand Assets (Logo, Cover Banner, Description, Colors, Mission) - Max 18 points
+    let assetScore = 0;
+    if (brand.logo_url) {
+      assetScore += 5;
+      reasons.push("Official brand logo uploaded (+5 PTS)");
+    } else {
+      recommendations.push("Upload your official brand logo (+5 PTS)");
+    }
+
+    if (brand.banner_url || brand.cover_url) {
+      assetScore += 3;
+      reasons.push("Brand banner / cover artwork uploaded (+3 PTS)");
+    }
+
+    const desc = String(brand.description || brand.short_description || "");
+    if (desc.length >= 30) {
+      assetScore += 5;
+      reasons.push("Complete brand description (>30 chars) (+5 PTS)");
+    } else {
+      recommendations.push("Add a detailed brand story and description (+5 PTS)");
+    }
+
+    const colors = brand.brand_colors || brand.colors || (brand.settings && brand.settings.colors);
+    if (colors && (Array.isArray(colors) ? colors.length >= 2 : typeof colors === "object")) {
+      assetScore += 3;
+      reasons.push("Brand color palette configured (+3 PTS)");
+    }
+
+    if (brand.mission || (brand.knowledge_base && brand.knowledge_base.mission)) {
+      assetScore += 2;
+      reasons.push("Core mission statement configured (+2 PTS)");
+    }
+    breakdown.assets = { score: assetScore, maxScore: 18, detail: "Logo, banner, colors, and mission" };
+    score += assetScore;
+
+    // 4. Proof & Physical Presence (Social, Google Business, Storefront Photos, Docs) - Max 40 points
+    let proofScore = 0;
     const socials = brand.social_links || evidence.social_links || {};
     const activeSocials = Object.values(socials).filter(Boolean).length;
     if (activeSocials >= 3) {
-      socialScore += 25;
-      reasons.push("3+ active social media channels linked.");
-    } else if (activeSocials >= 1) {
-      socialScore += 15;
-      reasons.push(`${activeSocials} social channel(s) linked.`);
+      proofScore += 10;
+      reasons.push("3+ active social media channels linked (+10 PTS)");
+    } else if (activeSocials > 0) {
+      proofScore += 5;
+      reasons.push(`${activeSocials} social channel(s) linked (+5 PTS)`);
+      recommendations.push("Link at least 3 social channels to earn full points (+5 PTS)");
     } else {
-      recommendations.push("Link official Instagram, Facebook, LinkedIn, or X profiles.");
-    }
-    breakdown.socialPresence = { score: socialScore, maxScore: 25, detail: "Social channel footprint" };
-    score += socialScore;
-
-    // 4. Digital Domain & Website Ownership - Max 40 points
-    let digitalScore = 0;
-    const isDnsVerified = Boolean(evidence.dns_txt_record || evidence.meta_tag);
-    if (brand.website) {
-      digitalScore += 15;
-      reasons.push("Official website domain provided.");
-      if (isDnsVerified) {
-        digitalScore += 25;
-        reasons.push("DNS / HTML Meta tag ownership verified.");
-      }
-    } else {
-      reasons.push("Non-digital business model recognized (Website optional).");
-    }
-    breakdown.digitalDomain = { score: digitalScore, maxScore: 40, detail: "Website & domain verification" };
-    score += digitalScore;
-
-    // Direct Ownership Auto-Approval Bonus: Email Verified + Website DNS Verified
-    const isEmailVerified = Boolean(evidence.emailVerified || brand.email_verified);
-    if (isEmailVerified && isDnsVerified) {
-      score += 20;
-      reasons.push("Direct Ownership Confirmed: Business Email & Web DNS TXT verified.");
+      recommendations.push("Link official Instagram, Facebook, LinkedIn, or X channels (+10 PTS)");
     }
 
-    // Check for explicit policy violations (Adult, Illegal, Hate, Scam, Spam, Impersonation)
-    const combinedContent = `${brand.name || ""} ${brand.short_description || ""} ${brand.mission || ""}`.toLowerCase();
-    const violationKeywords = ["scam", "phishing", "illegal drugs", "counterfeit", "hate speech", "exploit"];
-    const isExplicitViolation = violationKeywords.some((word) => combinedContent.includes(word));
-
-    const hasWebsite = Boolean(brand.website && String(brand.website).trim().length > 3);
-
-    let status: "verified" | "pending" | "needs_review" | "rejected" = "needs_review";
-    if (isExplicitViolation) {
-      status = "rejected";
-      reasons.push("Explicit community policy violation detected.");
-    } else if (hasWebsite && !isDnsVerified) {
-      // If a website is provided, Website Ownership Verification (DNS TXT or Meta Tag) is strictly mandatory
-      status = "needs_review";
-      recommendations.push(
-        `Website ownership verification is mandatory for ${brand.website}. Please add the DNS TXT record or HTML Meta tag and click 'Verify Again'.`
-      );
-    } else if (score >= 65 || (isEmailVerified && isDnsVerified) || (!hasWebsite && isEmailVerified && score >= 50)) {
-      status = "verified";
-    } else {
-      status = "needs_review";
-      if (recommendations.length === 0) {
-        recommendations.push(
-          "Provide additional business evidence (e.g. storefront photo, business card, Google Business profile, or social links) to reach verified status."
-        );
-      }
+    if (evidence.google_business_connected || brand.google_business) {
+      proofScore += 10;
+      reasons.push("Google Business Profile connected (+10 PTS)");
     }
+
+    const photos = evidence.storefront_photos || evidence.storefrontPhotos || [];
+    if (photos.length > 0) {
+      proofScore += 5;
+      reasons.push("Storefront / office photos uploaded (+5 PTS)");
+    }
+
+    if (evidence.catalog_url || evidence.menu_url || evidence.product_catalog_url) {
+      proofScore += 5;
+      reasons.push("Product catalog or menu uploaded (+5 PTS)");
+    }
+
+    if (evidence.business_card_url || evidence.business_card || evidence.tax_registration_url) {
+      proofScore += 10;
+      reasons.push("Business registration / card document uploaded (+10 PTS)");
+    }
+    breakdown.proof = { score: proofScore, maxScore: 40, detail: "Socials, storefront, documents, and business proof" };
+    score += proofScore;
+
+    // Binary verification: Verified if website DNS ownership verified OR email verified
+    const isVerified = isDnsVerified || isEmailVerified;
+    const finalScore = Math.min(100, score);
+    const status: "verified" | "pending" | "needs_review" | "rejected" = isVerified ? "verified" : finalScore >= 50 ? "needs_review" : "pending";
 
     return {
-      confidenceScore: Math.min(score, 100),
+      confidenceScore: finalScore,
       status,
       breakdown,
-      reasons,
-      recommendations,
+      reasons: reasons.length > 0 ? reasons : ["Initial brand submission registered."],
+      recommendations: recommendations.length > 0 ? recommendations : ["Brand verification complete at 100%."],
     };
   }
 

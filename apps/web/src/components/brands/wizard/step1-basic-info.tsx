@@ -293,6 +293,7 @@ export function Step1BasicInfoComponent({ data, onChange, errors = {} }: Step1Pr
               }}
               className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 shadow-xs"
             >
+              <option value="">Select Business Type</option>
               {DEFAULT_BUSINESS_TYPES.map((bt) => (
                 <option key={bt} value={bt}>
                   {bt}

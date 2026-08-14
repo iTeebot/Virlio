@@ -1,7 +1,5 @@
-/**
- * Architecture Route Stub: /public-brands
- * Pure structural placeholder for Next.js App Router static compilation.
- */
+import { permanentRedirect } from "next/navigation";
+
 export default function PublicBrandsPage() {
-  return null;
+  permanentRedirect("/explore");
 }

@@ -1,7 +1,5 @@
-/**
- * Architecture Route Stub: /public-templates
- * Pure structural placeholder for Next.js App Router static compilation.
- */
+import { permanentRedirect } from "next/navigation";
+
 export default function PublicTemplatesPage() {
-  return null;
+  permanentRedirect("/templates");
 }

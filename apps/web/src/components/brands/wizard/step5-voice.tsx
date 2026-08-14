@@ -38,13 +38,14 @@ export function Step5VoiceComponent({ data, onChange, brandContext }: Step5Props
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-            Primary Brand Tone *
+            Primary Brand Tone
           </label>
           <select
             value={data.brand_tone}
             onChange={(e) => onChange({ brand_tone: e.target.value })}
             className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 shadow-xs"
           >
+            <option value="">Select Primary Brand Tone</option>
             {TONES.map((t) => (
               <option key={t} value={t}>
                 {t}
@@ -56,7 +57,7 @@ export function Step5VoiceComponent({ data, onChange, brandContext }: Step5Props
         <AISuggestionBox
           step={5}
           field="tagline"
-          label="Brand Tagline *"
+          label="Brand Tagline"
           placeholder="e.g. Empowering Your Digital Future."
           currentValue={data.tagline}
           brandContext={brandContext}
@@ -68,7 +69,7 @@ export function Step5VoiceComponent({ data, onChange, brandContext }: Step5Props
       <AISuggestionBox
         step={5}
         field="mission"
-        label="Mission Statement *"
+        label="Mission Statement"
         placeholder="Our mission is to..."
         multiline
         rows={3}
@@ -81,7 +82,7 @@ export function Step5VoiceComponent({ data, onChange, brandContext }: Step5Props
       <AISuggestionBox
         step={5}
         field="vision"
-        label="Vision Statement *"
+        label="Vision Statement"
         placeholder="Our vision is to become..."
         multiline
         rows={3}
@@ -96,7 +97,7 @@ export function Step5VoiceComponent({ data, onChange, brandContext }: Step5Props
         <AISuggestionBox
           step={5}
           field="ctaStyle"
-          label="Call-To-Action (CTA) Style *"
+          label="Call-To-Action (CTA) Style"
           placeholder="e.g. Action-Oriented ('Explore Now', 'Get Started Free')"
           currentValue={data.cta_style}
           brandContext={brandContext}
@@ -107,7 +108,7 @@ export function Step5VoiceComponent({ data, onChange, brandContext }: Step5Props
         <AISuggestionBox
           step={5}
           field="hashtagStrategy"
-          label="Hashtag Strategy *"
+          label="Hashtag Strategy"
           placeholder="e.g. 3 Niche Tags + 2 Branded Tags (#BrandTag, #IndustryTrends)"
           currentValue={data.preferred_hashtag_style}
           brandContext={brandContext}

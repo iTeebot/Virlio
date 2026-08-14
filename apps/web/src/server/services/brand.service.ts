@@ -17,12 +17,68 @@ export async function update(brandId: string, userId: string, data: Partial<Bran
   return brandRepository.update(brandId, data);
 }
 
+import { calculateBrandTrustScore } from "@/lib/services/brand-trust-score.service";
+
 export async function getBySlug(slug: string) {
   return brandRepository.findBySlug(slug);
 }
 
 export async function getByOwner(userId: string) {
-  return brandRepository.findUserAccessibleBrands(userId);
+  const brandsList = await brandRepository.findUserAccessibleBrands(userId);
+  return Promise.all(
+    brandsList.map(async (b) => {
+      const verif = await brandRepository.getVerification(b.id);
+      const score = calculateBrandTrustScore(b, verif?.evidence_data || {});
+      const confidence = b.ai_confidence_score || score.trustScore;
+      return {
+        ...b,
+        ai_confidence_score: confidence,
+        brand_score: confidence,
+        digital_presence_score: confidence,
+        trust_score: confidence,
+        verification: verif,
+        scoreResult: score,
+      };
+    })
+  );
+}
+
+/**
+ * Canonical Single Source of Truth for Brand Profile Data
+ * Used universally by public pages, API routes, and dashboard views.
+ */
+export async function getBrandProfile(idOrSlug: string, viewerUserId?: string) {
+  let brand: any = null;
+  if (idOrSlug.includes("-") && idOrSlug.length > 20) {
+    brand = await brandRepository.findById(idOrSlug);
+  } else {
+    brand = await brandRepository.findBySlug(idOrSlug);
+  }
+
+  if (!brand) return null;
+
+  let userRole: string | null = null;
+  if (viewerUserId) {
+    userRole = await brandRepository.getUserRoleForBrand(brand.id, viewerUserId);
+  }
+
+  const [verification, knowledgeBase] = await Promise.all([
+    brandRepository.getVerification(brand.id),
+    brandRepository.getKnowledgeBase(brand.id),
+  ]);
+
+  const scoreResult = calculateBrandTrustScore(brand, verification?.evidence_data || {});
+  const confidenceScore = brand.ai_confidence_score || scoreResult.trustScore;
+
+  return {
+    ...brand,
+    ai_confidence_score: confidenceScore,
+    digital_presence_score: confidenceScore,
+    userRole,
+    verification,
+    knowledgeBase,
+    scoreResult,
+  };
 }
 
 export async function requestVerification(brandId: string, userId: string, evidenceData: any) {
@@ -32,10 +88,10 @@ export async function requestVerification(brandId: string, userId: string, evide
   const brand = await brandRepository.findById(brandId);
   if (!brand) throw new Error("Brand not found");
 
-  const result = BrandAIService.calculateVerificationConfidence(brand, evidenceData);
+  const result = calculateBrandTrustScore(brand, evidenceData);
 
   await brandRepository.upsertVerification(brandId, {
-    confidence_score: result.confidenceScore,
+    confidence_score: result.trustScore,
     status: result.status,
     reasons: result.reasons,
     recommendations: result.recommendations,
@@ -45,10 +101,11 @@ export async function requestVerification(brandId: string, userId: string, evide
   await brandRepository.update(brandId, {
     verification_status: result.status as any,
     verification_reason: result.reasons.join("; "),
-    ai_confidence_score: result.confidenceScore,
+    ai_confidence_score: result.trustScore,
+    digital_presence_score: result.trustScore,
   });
 
-  await brandRepository.createAuditLog(brandId, userId, "SUBMIT_VERIFICATION", { score: result.confidenceScore, status: result.status });
+  await brandRepository.createAuditLog(brandId, userId, "SUBMIT_VERIFICATION", { score: result.trustScore, status: result.status });
 
   return result;
 }
@@ -140,7 +197,7 @@ export async function createFromWizard(userId: string, fullData: any) {
     verification_status: (verifResult.status === "needs_review" ? "pending" : verifResult.status) as any,
     verification_reason: verifResult.reasons.join("; "),
     ai_confidence_score: verifResult.confidenceScore,
-    brand_score: 100,
+    brand_score: verifResult.confidenceScore,
     digital_presence_score: verifResult.confidenceScore,
     owner_id: userId,
     created_by: userId,

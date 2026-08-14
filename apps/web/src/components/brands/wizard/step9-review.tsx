@@ -41,22 +41,24 @@ export function Step9ReviewComponent({ fullWizardData, onJumpToStep }: Step9Prop
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
           <div>
             <span className="text-gray-500 block font-medium">Brand Name</span>
-            <span className="text-gray-900 font-bold">{step1.name}</span>
+            <span className="text-gray-900 font-bold">{step1.name || "Untitled Brand"}</span>
           </div>
           <div>
             <span className="text-gray-500 block font-medium">Username Handle</span>
-            <span className="text-blue-600 font-bold">@{step1.slug}</span>
+            <span className="text-blue-600 font-bold">@{step1.slug || "handle"}</span>
           </div>
           <div>
             <span className="text-gray-500 block font-medium">Business Type</span>
-            <span className="text-gray-900 font-bold">{step1.business_type}</span>
+            <span className="text-gray-900 font-bold">{step1.business_type || "Not specified"}</span>
           </div>
           <div>
             <span className="text-gray-500 block font-medium">Industry</span>
-            <span className="text-gray-900 font-bold">{step1.industry}</span>
+            <span className="text-gray-900 font-bold">{step1.industry || "Not specified"}</span>
           </div>
         </div>
-        <p className="text-xs text-gray-700 italic pt-1 border-t border-gray-100">"{step1.short_description}"</p>
+        {step1.short_description && (
+          <p className="text-xs text-gray-700 italic pt-1 border-t border-gray-100">"{step1.short_description}"</p>
+        )}
       </div>
 
       {/* Visual Identity Summary */}
@@ -75,8 +77,12 @@ export function Step9ReviewComponent({ fullWizardData, onJumpToStep }: Step9Prop
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          {step2.logo_url && (
+          {step2.logo_url ? (
             <img src={step2.logo_url} alt="Logo" className="w-12 h-12 object-contain bg-gray-50 p-1 rounded-xl border border-gray-200" />
+          ) : (
+            <div className="w-12 h-12 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center text-sm">
+              {(step1.name || "B").slice(0, 2).toUpperCase()}
+            </div>
           )}
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md border border-gray-300 shadow-xs" style={{ backgroundColor: step2.primary_color }} title="Primary" />
@@ -86,7 +92,7 @@ export function Step9ReviewComponent({ fullWizardData, onJumpToStep }: Step9Prop
             <div className="w-6 h-6 rounded-md border border-gray-300 shadow-xs" style={{ backgroundColor: step2.light_bg_color }} title="Light BG" />
           </div>
           <div className="text-xs text-gray-700 font-semibold ml-auto">
-            Font: {step2.typography} | Style: {step2.brand_style}
+            Font: {step2.typography || "Inter"} | Style: {step2.brand_style || "Modern"}
           </div>
         </div>
       </div>
@@ -107,9 +113,9 @@ export function Step9ReviewComponent({ fullWizardData, onJumpToStep }: Step9Prop
           </button>
         </div>
         <div className="text-xs text-gray-700 space-y-1">
-          <p><strong className="text-gray-500">Customer Type:</strong> {step3.customer_type}</p>
-          <p><strong className="text-gray-500">Target Ages:</strong> {(step3.target_age_groups || []).join(", ")}</p>
-          <p><strong className="text-gray-500">Interests:</strong> {(step3.audience_interests || []).join(", ")}</p>
+          <p><strong className="text-gray-500">Customer Type:</strong> {step3.customer_type || "General Audience"}</p>
+          <p><strong className="text-gray-500">Target Ages:</strong> {(step3.target_age_groups || []).length > 0 ? step3.target_age_groups.join(", ") : "All Ages"}</p>
+          <p><strong className="text-gray-500">Interests:</strong> {(step3.audience_interests || []).length > 0 ? step3.audience_interests.join(", ") : "General Interests"}</p>
         </div>
       </div>
 
@@ -130,9 +136,9 @@ export function Step9ReviewComponent({ fullWizardData, onJumpToStep }: Step9Prop
             </button>
           </div>
           <div className="text-xs text-gray-700 space-y-1">
-            <p><strong className="text-gray-500">Price Tier:</strong> {step4.price_range}</p>
-            <p><strong className="text-gray-500">Flagship:</strong> {step4.best_seller || "N/A"}</p>
-            <p><strong className="text-gray-500">USPs:</strong> {(step4.usps || []).join("; ")}</p>
+            <p><strong className="text-gray-500">Price Tier:</strong> {step4.price_range || "Flexible"}</p>
+            <p><strong className="text-gray-500">Flagship:</strong> {step4.best_seller || "General Portfolio"}</p>
+            <p><strong className="text-gray-500">USPs:</strong> {(step4.usps || []).length > 0 ? step4.usps.join("; ") : "Custom Brand Offerings"}</p>
           </div>
         </div>
 
@@ -151,9 +157,9 @@ export function Step9ReviewComponent({ fullWizardData, onJumpToStep }: Step9Prop
             </button>
           </div>
           <div className="text-xs text-gray-700 space-y-1">
-            <p><strong className="text-gray-500">Tone:</strong> {step5.brand_tone}</p>
-            <p><strong className="text-gray-500">Tagline:</strong> "{step5.tagline}"</p>
-            <p><strong className="text-gray-500">Mission:</strong> {step5.mission}</p>
+            <p><strong className="text-gray-500">Tone:</strong> {step5.brand_tone || "Natural & Engaging"}</p>
+            {step5.tagline && <p><strong className="text-gray-500">Tagline:</strong> "{step5.tagline}"</p>}
+            {step5.mission && <p><strong className="text-gray-500">Mission:</strong> {step5.mission}</p>}
           </div>
         </div>
       </div>

@@ -81,7 +81,7 @@ export default function BrandOverviewPage() {
   if (!currentBrand) return null;
 
   const isVerified = currentBrand.verification_status === "verified";
-  const brandScore = stats?.brand_score || currentBrand.brand_score || 100;
+  const brandScore = currentBrand.ai_confidence_score ?? currentBrand.brand_score ?? stats?.brand_score ?? 0;
   const recentMemes = stats?.recent_memes || [];
 
   return (

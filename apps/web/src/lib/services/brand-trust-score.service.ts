@@ -9,7 +9,11 @@ export interface BrandChecklistItem {
 
 export interface BrandTrustScoreResult {
   trustScore: number; // 0 to 100
+  confidenceScore: number; // 0 to 100 (identical to trustScore)
   isVerified: boolean; // Binary verification state
+  status: "verified" | "pending" | "needs_review";
+  reasons: string[];
+  recommendations: string[];
   checklist: BrandChecklistItem[];
   improvementSuggestions: {
     item: BrandChecklistItem;
@@ -176,9 +180,17 @@ export function calculateBrandTrustScore(brand: any, evidenceData: any = {}): Br
     };
   });
 
+  const achievedReasons = checklist.filter((item) => item.achieved).map((item) => item.name);
+  const pendingRecommendations = uncompletedItems.map((item) => `Add or complete: ${item.name} (+${item.points} PTS)`);
+  const status: "verified" | "pending" | "needs_review" = isVerified ? "verified" : trustScore >= 50 ? "needs_review" : "pending";
+
   return {
     trustScore,
+    confidenceScore: trustScore,
     isVerified,
+    status,
+    reasons: achievedReasons.length > 0 ? achievedReasons : ["Initial brand submission registered."],
+    recommendations: pendingRecommendations.length > 0 ? pendingRecommendations : ["Brand verification complete at 100%."],
     checklist,
     improvementSuggestions,
     potentialScore,

@@ -1,124 +1,102 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useParams, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { getCachedBrandProfile } from "@/server/services/cache-server.service";
 import {
-  CheckCircle2,
   Globe,
   Building2,
   ArrowLeft,
   ShieldCheck,
-  Mail,
-  Phone,
-  Sparkles,
   ExternalLink,
   MapPin,
-  Calendar,
-  Users,
-  Tag,
   Share2,
-  Package,
-  Layers,
-  Award,
   Clock,
 } from "lucide-react";
 
-export default function BrandDetailPage() {
-  const params = useParams();
-  const rawSlug = (params?.slug as string) || "";
+interface BrandPageProps {
+  params: Promise<{ slug: string }>;
+}
 
-  const [brand, setBrand] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export async function generateMetadata({ params }: BrandPageProps) {
+  const { slug } = await params;
+  const brand = await getCachedBrandProfile(slug);
 
-  useEffect(() => {
-    if (!rawSlug) return;
-
-    async function fetchBrand() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/v1/brands/${encodeURIComponent(rawSlug)}`);
-        const json = await res.json();
-
-        if (res.ok && json.data) {
-          setBrand(json.data);
-        } else {
-          setError(json.message || "Brand not found");
-        }
-      } catch (err: any) {
-        setError("Failed to load brand profile");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchBrand();
-  }, [rawSlug]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900 selection:bg-blue-600 selection:text-white virlio-landing-bg">
-        <Header />
-        <main className="flex-1 py-16">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6">
-            <div className="h-48 bg-gray-100 rounded-3xl animate-pulse" />
-            <div className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+  if (!brand) {
+    return {
+      title: "Brand Not Found — Virlio",
+    };
   }
 
-  if (error || !brand) {
-    return (
-      <div className="flex min-h-screen flex-col bg-white text-gray-900 selection:bg-blue-600 selection:text-white virlio-landing-bg">
-        <Header />
-        <main className="flex-1 py-20 text-center">
-          <div className="mx-auto max-w-md px-4 space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mx-auto text-2xl font-bold">
-              ?
-            </div>
-            <h1 className="text-2xl font-black text-gray-900">Brand Not Found</h1>
-            <p className="text-xs text-gray-600">
-              The brand handle <span className="font-mono text-blue-600 font-bold">@{rawSlug}</span> is not registered or is private.
-            </p>
-            <div className="pt-4">
-              <Link
-                href="/brands"
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-xs"
-              >
-                <ArrowLeft className="w-4 h-4" /> Explore Brands Directory
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+  const displayName = brand.name || `@${brand.slug}`;
+  return {
+    title: `${displayName} (@${brand.slug}) — Verified Brand Profile | Virlio`,
+    description:
+      brand.description ||
+      brand.short_description ||
+      `Explore official brand memes, community templates, and verified marketing campaigns from ${displayName} on Virlio.`,
+  };
+}
+
+export default async function BrandDetailPage({ params }: BrandPageProps) {
+  const { slug } = await params;
+  const brand = await getCachedBrandProfile(slug);
+
+  if (!brand) {
+    notFound();
   }
 
   const socialLinks = brand.social_links || {};
   const settings = brand.settings || {};
   const metadata = brand.metadata || {};
-  const colors = settings.colors || {};
-
   const isVerified = brand.verification_status === "verified";
   const confidenceScore = brand.ai_confidence_score || brand.digital_presence_score || 0;
+
+  // Organization JSON-LD Schema for SEO
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": brand.name,
+    "url": brand.website || `https://virlio.iteebot.com/brands/${brand.slug}`,
+    "logo": brand.logo_url || "https://virlio.iteebot.com/images/logo-vertical.png",
+    "description": brand.description || brand.short_description || "",
+    "sameAs": Object.values(socialLinks).filter((url) => typeof url === "string" && url.startsWith("http")),
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900 selection:bg-blue-600 selection:text-white virlio-landing-bg">
       <Header />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <main className="flex-1 pb-20">
+        {/* Back Navigation Bar */}
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-6 pb-4">
+          <Link
+            href="/explore"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Explore Feed</span>
+          </Link>
+        </div>
+
         {/* Cover Banner Header - Full Height Display */}
         <div className="relative w-full h-64 sm:h-80 md:h-[400px] bg-slate-950 overflow-hidden">
           {brand.banner_url ? (
-            <img src={brand.banner_url} alt={brand.name} className="w-full h-full object-cover" />
+            <Image
+              src={brand.banner_url}
+              alt={brand.name}
+              fill
+              priority
+              className="object-cover"
+              sizes="100vw"
+            />
           ) : (
             <div className="w-full h-full bg-slate-950 flex items-center justify-center">
               <Building2 className="w-16 h-16 text-slate-800" />
@@ -129,12 +107,19 @@ export default function BrandDetailPage() {
 
         {/* Brand Card Content Container */}
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 -mt-20 sm:-mt-24 relative z-10 space-y-8">
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 pb-6 border-b border-gray-100">
               <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-white border-4 border-white shadow-xl p-1 shrink-0 flex items-center justify-center overflow-hidden -mt-16 sm:-mt-20">
+                <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-white border-4 border-white shadow-xl p-1 shrink-0 flex items-center justify-center overflow-hidden -mt-16 sm:-mt-20">
                   {brand.logo_url ? (
-                    <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain rounded-xl" />
+                    <Image
+                      src={brand.logo_url}
+                      alt={brand.name}
+                      width={128}
+                      height={128}
+                      priority
+                      className="w-full h-full object-contain rounded-xl"
+                    />
                   ) : (
                     <div className="w-full h-full bg-blue-600 text-white font-black text-3xl flex items-center justify-center rounded-xl">
                       {brand.name.slice(0, 2).toUpperCase()}
@@ -230,7 +215,7 @@ export default function BrandDetailPage() {
           </div>
 
           {/* Social Channels Section */}
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
               <Share2 className="w-4 h-4 text-blue-600" /> Official Social Channels
             </h3>

@@ -73,10 +73,10 @@ export function Step7VerificationComponent({ data, onChange, brandContext, socia
         <div>
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            Step 7: Confidence-Based Brand Verification
+            Step 7: Brand Verification (Optional)
           </h2>
           <p className="text-xs sm:text-sm text-gray-600 mt-1">
-            Verification is confidence-based (0-100%), never binary. Non-digital storefronts without websites are 100% supported.
+            Brand verification is completely optional. You can provide business evidence now to increase your trust score, or skip and complete verification anytime later.
           </p>
         </div>
         <button

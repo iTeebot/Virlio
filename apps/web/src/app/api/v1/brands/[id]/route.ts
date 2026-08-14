@@ -10,28 +10,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const session = await authService.getCurrentSession();
 
-    let brand: any = null;
-    // Check if id is UUID or slug
-    if (id.includes("-") && id.length > 20) {
-      brand = await brandRepository.findById(id);
-    } else {
-      brand = await brandRepository.findBySlug(id);
-    }
-
+    const brand = await brandService.getBrandProfile(id, session?.user?.id);
     if (!brand) return apiNotFound("Brand not found");
 
-    let userRole = null;
-    if (session?.user?.id) {
-      userRole = await brandRepository.getUserRoleForBrand(brand.id, session.user.id);
-    }
-
-    const verification = await brandRepository.getVerification(brand.id);
-
-    return apiSuccess({
-      ...brand,
-      userRole,
-      verification,
-    });
+    return apiSuccess(brand);
   } catch (error: any) {
     return apiError(error.message || "Failed to fetch brand", 500);
   }

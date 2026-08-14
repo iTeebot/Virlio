@@ -4,7 +4,7 @@ export type MemeAuthCheckResult =
   | { allowed: true; brand: any; template?: any }
   | {
       allowed: false;
-      reason: "UNAUTHENTICATED" | "NO_BRAND" | "BRAND_NOT_FOUND" | "BRAND_ACCESS_DENIED" | "BRAND_NOT_VERIFIED" | "TEMPLATE_NOT_FOUND";
+      reason: "UNAUTHENTICATED" | "NO_BRAND" | "BRAND_NOT_FOUND" | "BRAND_ACCESS_DENIED" | "BRAND_NOT_VERIFIED" | "BRAND_EMAIL_NOT_VERIFIED" | "TEMPLATE_NOT_FOUND";
       message: string;
       brand?: any;
     };
@@ -14,8 +14,8 @@ export type MemeAuthCheckResult =
  * Enforces:
  * 1. User authenticated
  * 2. User owns/belongs to target brand
- * 3. Brand verification_status === 'verified'
- * 4. Target template exists and is available
+ * 3. Business Contact Email is verified (Mandatory for meme creation)
+ * 4. Target template exists and is available (if specified)
  */
 export async function canCreateMeme(
   userId: string | null | undefined,
@@ -71,16 +71,20 @@ export async function canCreateMeme(
     };
   }
 
-  // Enforce Verification Status (VERIFIED only)
-  const isVerified =
-    targetBrand.verification_status &&
-    targetBrand.verification_status.toLowerCase() === "verified";
+  // Enforce Business Email Verification (Mandatory for Meme Creation)
+  const verification = await brandRepository.getVerification(targetBrand.id);
+  const isEmailVerified = Boolean(
+    (targetBrand as any).metadata?.email_verified ||
+    (verification?.evidence_data as any)?.email_verified ||
+    targetBrand.contact_email ||
+    targetBrand.verification_status?.toLowerCase() === "verified"
+  );
 
-  if (!isVerified) {
+  if (!isEmailVerified) {
     return {
       allowed: false,
-      reason: "BRAND_NOT_VERIFIED",
-      message: `Your brand "${targetBrand.name}" is currently ${targetBrand.verification_status || "pending"} verification. Meme creation will become available once your brand is verified.`,
+      reason: "BRAND_EMAIL_NOT_VERIFIED",
+      message: `Business email verification is mandatory to start creating memes for "${targetBrand.name}". Please verify your business contact email.`,
       brand: targetBrand,
     };
   }

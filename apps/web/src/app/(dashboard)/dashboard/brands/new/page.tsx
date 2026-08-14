@@ -146,6 +146,24 @@ export default function CreateBrandWizardPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState(false);
 
+  const sanitizeDraftData = (rawDraft: any) => {
+    if (!rawDraft?.step_data) return rawDraft;
+    const stepData = { ...rawDraft.step_data };
+    if (stepData.step6 && stepData.step6.business_email === "contact@virlio.com") {
+      stepData.step6 = { ...stepData.step6, business_email: "" };
+    }
+    if (stepData.step5 && stepData.step5.tagline === "Empowering Your Digital Presence.") {
+      stepData.step5 = { ...stepData.step5, tagline: "" };
+    }
+    if (stepData.step5 && stepData.step5.mission === "To empower businesses and creators with innovative AI-driven viral marketing software.") {
+      stepData.step5 = { ...stepData.step5, mission: "" };
+    }
+    if (stepData.step5 && stepData.step5.vision === "To become the global standard for brand creation and meme marketing.") {
+      stepData.step5 = { ...stepData.step5, vision: "" };
+    }
+    return { ...rawDraft, step_data: stepData };
+  };
+
   // Load existing creation draft on mount
   useEffect(() => {
     async function loadDraft() {
@@ -154,7 +172,8 @@ export default function CreateBrandWizardPage() {
         if (res.ok) {
           const json = await res.json();
           if (json.data && json.data.step_data && json.data.step_data.step1?.name) {
-            setDraftDetected(json.data);
+            const cleanDraft = sanitizeDraftData(json.data);
+            setDraftDetected(cleanDraft);
             setShowDraftModal(true);
           }
         }
@@ -248,11 +267,12 @@ export default function CreateBrandWizardPage() {
   // Continue draft handler
   const handleContinueDraft = () => {
     if (draftDetected && draftDetected.step_data) {
+      const sanitized = sanitizeDraftData(draftDetected);
       setWizardData((prev) => ({
         ...prev,
-        ...draftDetected.step_data,
+        ...sanitized.step_data,
       }));
-      setCurrentStep(draftDetected.current_step || 1);
+      setCurrentStep(sanitized.current_step || 1);
     }
     setShowDraftModal(false);
   };

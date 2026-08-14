@@ -101,7 +101,13 @@ export default function BrandMemeStudioPage() {
 
   if (!currentBrand) return null;
 
-  const isVerified = (currentBrand.verification_status || "").toLowerCase() === "verified";
+  const isEmailVerified = Boolean(
+    (currentBrand as any)?.metadata?.email_verified ||
+    (currentBrand as any)?.verification?.evidence_data?.email_verified ||
+    (currentBrand as any)?.email_verified ||
+    (currentBrand as any)?.contact_email ||
+    (currentBrand.verification_status || "").toLowerCase() === "verified"
+  );
   const brandVoice = (currentBrand as any)?.knowledge_base?.brand_voice?.description || "Professional & Creative";
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -315,14 +321,14 @@ export default function BrandMemeStudioPage() {
     }
   };
 
-  // State A: Brand Awaiting Verification
-  if (!isVerified) {
+  // State A: Business Email Verification Required
+  if (!isEmailVerified) {
     return (
       <div className="space-y-6 max-w-4xl mx-auto py-6 font-sans">
         <div className="pb-6 border-b border-gray-200">
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200 uppercase tracking-wider">
-              Verification Required
+              Email Verification Required
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
@@ -330,7 +336,7 @@ export default function BrandMemeStudioPage() {
             Meme Studio
           </h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1">
-            Create AI-powered branded memes using your verified brand identity, knowledge base, templates, and brand voice.
+            Create AI-powered branded memes using your brand identity, knowledge base, templates, and brand voice.
           </p>
         </div>
 
@@ -341,10 +347,10 @@ export default function BrandMemeStudioPage() {
 
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-gray-900">
-              Brand Verification Pending
+              Business Email Verification Required
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-              Meme Studio is exclusively available for verified brands. Your brand <strong className="text-gray-900">"{currentBrand.name}"</strong> is currently awaiting verification.
+              Business email verification is mandatory to unlock Meme Studio and start generating branded memes for <strong className="text-gray-900">"{currentBrand.name}"</strong>.
             </p>
           </div>
 
@@ -354,7 +360,7 @@ export default function BrandMemeStudioPage() {
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white shadow-xs transition-colors"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>Complete Brand Verification</span>
+              <span>Verify Business Email</span>
             </Link>
           </div>
         </div>

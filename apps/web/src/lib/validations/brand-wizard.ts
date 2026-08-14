@@ -104,9 +104,9 @@ export const step6SocialPresenceSchema = z.object({
   x: isValidOrEmptyUrl,
   whatsapp_business: z.string().optional().default(""),
   google_business: isValidOrEmptyUrl,
-  business_email: z.string().email("Invalid email address").or(z.string().length(0)).optional().default(""),
+  business_email: z.string().min(1, "Business contact email is required").email("Please enter a valid business email address"),
   business_phone: z.string().optional().default(""),
-  email_verified: z.boolean().optional().default(false),
+  email_verified: z.boolean().refine((val) => val === true, "Business email must be verified via OTP before continuing"),
 });
 
 export const step7VerificationEvidenceSchema = z.object({

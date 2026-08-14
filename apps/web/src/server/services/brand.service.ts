@@ -26,16 +26,23 @@ export async function getBySlug(slug: string) {
 export async function getByOwner(userId: string) {
   const brandsList = await brandRepository.findUserAccessibleBrands(userId);
   return Promise.all(
-    brandsList.map(async (b) => {
+    brandsList.map(async (b: any) => {
       const verif = await brandRepository.getVerification(b.id);
       const score = calculateBrandTrustScore(b, verif?.evidence_data || {});
       const confidence = b.ai_confidence_score || score.trustScore;
+      const isEmailVerified = Boolean(
+        b.metadata?.email_verified ||
+        (verif?.evidence_data as any)?.email_verified ||
+        b.contact_email ||
+        b.verification_status === "verified"
+      );
       return {
         ...b,
         ai_confidence_score: confidence,
         brand_score: confidence,
         digital_presence_score: confidence,
         trust_score: confidence,
+        email_verified: isEmailVerified,
         verification: verif,
         scoreResult: score,
       };
@@ -69,11 +76,18 @@ export async function getBrandProfile(idOrSlug: string, viewerUserId?: string) {
 
   const scoreResult = calculateBrandTrustScore(brand, verification?.evidence_data || {});
   const confidenceScore = brand.ai_confidence_score || scoreResult.trustScore;
+  const isEmailVerified = Boolean(
+    brand.metadata?.email_verified ||
+    (verification?.evidence_data as any)?.email_verified ||
+    brand.contact_email ||
+    brand.verification_status === "verified"
+  );
 
   return {
     ...brand,
     ai_confidence_score: confidenceScore,
     digital_presence_score: confidenceScore,
+    email_verified: isEmailVerified,
     userRole,
     verification,
     knowledgeBase,
@@ -114,9 +128,27 @@ export async function getPublicBrands(options: { limit?: number; offset?: number
   return brandRepository.findPublicBrands(options);
 }
 
-/* ---------------- DRAFT WIZARD ACTIONS ---------------- */
 export async function getDraft(userId: string) {
-  return brandRepository.getDraftByUser(userId);
+  const draft = await brandRepository.getDraftByUser(userId);
+  if (!draft || !draft.step_data) return draft;
+
+  const stepData: any = typeof draft.step_data === "object" ? { ...(draft.step_data as any) } : {};
+  if (stepData.step6 && stepData.step6.business_email === "contact@virlio.com") {
+    stepData.step6.business_email = "";
+  }
+  if (stepData.step5 && stepData.step5.tagline === "Empowering Your Digital Presence.") {
+    stepData.step5.tagline = "";
+  }
+  if (stepData.step5 && stepData.step5.mission === "To empower businesses and creators with innovative AI-driven viral marketing software.") {
+    stepData.step5.mission = "";
+  }
+  if (stepData.step5 && stepData.step5.vision === "To become the global standard for brand creation and meme marketing.") {
+    stepData.step5.vision = "";
+  }
+  return {
+    ...draft,
+    step_data: stepData,
+  };
 }
 
 export async function saveDraft(userId: string, currentStep: number, stepData: any) {
@@ -219,6 +251,7 @@ export async function createFromWizard(userId: string, fullData: any) {
     metadata: {
       address: { city: step1.city, state_province: step1.state_province, country: step1.country },
       tagline: step5.tagline,
+      email_verified: Boolean(step6.email_verified),
     },
   });
 
@@ -278,7 +311,11 @@ export async function createFromWizard(userId: string, fullData: any) {
     status: verifResult.status === "needs_review" ? "pending" : verifResult.status,
     reasons: verifResult.reasons,
     recommendations: verifResult.recommendations,
-    evidence_data: step7,
+    evidence_data: {
+      ...step7,
+      email_verified: Boolean(step6.email_verified),
+      business_email: step6.business_email,
+    },
   });
 
   // Log audit

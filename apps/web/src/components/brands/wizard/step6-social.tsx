@@ -304,7 +304,7 @@ export function Step6SocialComponent({ data, onChange }: Step6Props) {
           Step 6: Social Presence & Contact Info
         </h2>
         <p className="text-xs sm:text-sm text-gray-600 mt-1">
-          Enter handles, @usernames, or profile URLs. The runtime system verifies public profiles live so you can confirm ownership.
+          Business contact email verification via OTP is mandatory to create your brand and unlock meme creation. Website and social accounts are optional.
         </p>
       </div>
 

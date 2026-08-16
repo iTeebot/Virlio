@@ -23,6 +23,7 @@ import {
   ExternalLink,
   Zap,
   Share2,
+  Palette,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -59,6 +60,7 @@ export function DashboardSidebar({ mobileOpen = false, onMobileClose }: Dashboar
   const navItems = [
     { label: "Overview", href: `/dashboard/brands/${brandId}/overview`, icon: LayoutDashboard },
     { label: "Statistics", href: `/dashboard/brands/${brandId}/statistics`, icon: BarChart2 },
+    { label: "Brand Posts", href: `/dashboard/brands/${brandId}/posts`, icon: Palette, highlight: true },
     { label: "Meme Studio", href: `/dashboard/brands/${brandId}/generate`, icon: Sparkles, highlight: true },
     { label: "Automation", href: `/dashboard/brands/${brandId}/automations`, icon: Zap, highlight: true },
     { label: "Social Connections", href: `/dashboard/brands/${brandId}/socials`, icon: Share2 },

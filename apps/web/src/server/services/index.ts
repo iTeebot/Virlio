@@ -18,3 +18,5 @@ export * as memeEngineService from "./meme-engine/meme-engine.service";
 export * as memeRendererService from "./meme-engine/meme-renderer.service";
 export * as generationAnalytics from "./meme-engine/generation-analytics";
 export * as brandPostMemoryService from "./brand-post-memory.service";
+export * as brandVisualProfileService from "./brand-visual-profile.service";
+export * as brandPostEngineService from "./brand-post-engine.service";

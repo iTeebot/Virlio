@@ -2,6 +2,8 @@ export * from "./types/provider.types";
 export * from "./routing/model-capability.registry";
 export * from "./routing/model-router";
 export * from "./routing/fallback-handler";
+export * from "./memory/context-window.manager";
+export * from "./memory/conversation-memory";
 export * from "./providers/groq.adapter";
 export * from "./providers/mistral.adapter";
 export * from "./providers/openrouter.adapter";

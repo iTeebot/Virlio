@@ -88,9 +88,29 @@ export async function POST(req: NextRequest, context: RouteParams) {
       );
     }
 
+    // Attach active_version with image_url to each variation
+    const variationsWithActiveVersions = (conceptResult.variations || []).map((v: any) => {
+      const synth = synthesizedImages.find((s: any) => s.variationId === v.id);
+      if (synth) {
+        return {
+          ...v,
+          active_version: {
+            id: synth.versionId,
+            version_number: synth.versionNumber,
+            image_url: synth.imageUrl,
+            thumbnail_url: synth.thumbnailUrl,
+            aspect_ratio: parsed.aspect_ratio,
+            created_at: new Date().toISOString(),
+          },
+        };
+      }
+      return v;
+    });
+
     return apiSuccess(
       {
         ...conceptResult,
+        variations: variationsWithActiveVersions,
         synthesizedImages,
       },
       201

@@ -203,9 +203,28 @@ export default function CreateBrandPostPage() {
         throw new Error(genJson.error || "Failed to generate post variations");
       }
 
-      setGenerationResult(genJson.data);
-      if (genJson.data.variations && genJson.data.variations.length > 0) {
-        setSelectedVariation(genJson.data.variations[0]);
+      const rawVariations = genJson.data.variations || [];
+      const variations = rawVariations.map((v: any) => {
+        const synth = genJson.data.synthesizedImages?.find((s: any) => s.variationId === v.id);
+        if (synth && !v.active_version) {
+          return {
+            ...v,
+            active_version: {
+              id: synth.versionId,
+              version_number: synth.versionNumber,
+              image_url: synth.imageUrl,
+              thumbnail_url: synth.thumbnailUrl,
+              aspect_ratio: aspectRatio,
+            },
+          };
+        }
+        return v;
+      });
+
+      const finalResult = { ...genJson.data, variations };
+      setGenerationResult(finalResult);
+      if (variations.length > 0) {
+        setSelectedVariation(variations[0]);
       }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred during generation");

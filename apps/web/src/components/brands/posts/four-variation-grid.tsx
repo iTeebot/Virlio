@@ -107,7 +107,7 @@ export function FourVariationGrid({
           const badge = getBadgeStyle(v.creative_direction);
           const Icon = badge.icon;
           const isSelected = selectedVariationId === v.id;
-          const imageUrl = v.active_version?.image_url;
+          const imageUrl = v.active_version?.image_url || (v as any).image_url;
 
           return (
             <div

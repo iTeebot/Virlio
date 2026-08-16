@@ -56,7 +56,7 @@ export function InteractiveImageEditor({
   const [error, setError] = useState<string | null>(null);
 
   const activeVersion = variation.active_version;
-  const activeImageUrl = activeVersion?.image_url;
+  const activeImageUrl = activeVersion?.image_url || (variation as any).image_url;
 
   const quickEditChips = [
     "Darken background to solid navy",

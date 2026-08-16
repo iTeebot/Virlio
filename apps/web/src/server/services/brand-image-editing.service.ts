@@ -121,7 +121,8 @@ export async function editVariationImage(
     version: String(uploadResult.version || "1"),
     folder,
     resource_type: "image",
-    entity_type: "brand_post" as any,
+    entity_type: "brand",
+    entity_id: input.brandId,
     transformation_metadata: {
       parentVersionId: input.parentVersionId,
       editInstruction: input.editInstruction,

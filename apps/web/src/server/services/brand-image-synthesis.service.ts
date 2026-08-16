@@ -204,7 +204,8 @@ export async function synthesizeVariationImage(
     version: String(uploadResult.version || "1"),
     folder,
     resource_type: "image",
-    entity_type: "brand_post" as any,
+    entity_type: "brand",
+    entity_id: input.brandId,
     transformation_metadata: {
       aspectRatio,
       provider: providerUsed,

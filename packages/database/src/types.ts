@@ -99,3 +99,18 @@ export type NewCloudAsset = InferInsertModel<typeof schema.cloudAssets>;
 
 export type TemplateModerationLog = InferSelectModel<typeof schema.templateModerationLogs>;
 export type NewTemplateModerationLog = InferInsertModel<typeof schema.templateModerationLogs>;
+
+export type BrandGenerationSession = InferSelectModel<typeof schema.brandGenerationSessions>;
+export type NewBrandGenerationSession = InferInsertModel<typeof schema.brandGenerationSessions>;
+
+export type BrandPostGeneration = InferSelectModel<typeof schema.brandPostGenerations>;
+export type NewBrandPostGeneration = InferInsertModel<typeof schema.brandPostGenerations>;
+
+export type BrandPostVariation = InferSelectModel<typeof schema.brandPostVariations>;
+export type NewBrandPostVariation = InferInsertModel<typeof schema.brandPostVariations>;
+
+export type BrandPostImageVersion = InferSelectModel<typeof schema.brandPostImageVersions>;
+export type NewBrandPostImageVersion = InferInsertModel<typeof schema.brandPostImageVersions>;
+
+export type BrandGenerationMemory = InferSelectModel<typeof schema.brandGenerationMemories>;
+export type NewBrandGenerationMemory = InferInsertModel<typeof schema.brandGenerationMemories>;

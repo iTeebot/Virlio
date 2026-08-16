@@ -13,4 +13,5 @@ export * from "./activity";
 export * from "./stats";
 export * from "./storage";
 export * from "./automations";
+export * from "./brand-posts";
 export * from "./relations";

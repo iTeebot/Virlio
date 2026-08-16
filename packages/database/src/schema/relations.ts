@@ -11,6 +11,13 @@ import { reports } from "./moderation";
 import { activities, notifications } from "./activity";
 import { userStats, brandStats } from "./stats";
 import { cloudAssets } from "./storage";
+import {
+  brandGenerationSessions,
+  brandPostGenerations,
+  brandPostVariations,
+  brandPostImageVersions,
+  brandGenerationMemories,
+} from "./brand-posts";
 
 export const usersRelations = relations(users, ({ many, one }) => ({
   accounts: many(accounts),
@@ -37,6 +44,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   assets: many(cloudAssets),
   drafts: many(brandDrafts),
   memeGenerations: many(memeGenerations),
+  postSessions: many(brandGenerationSessions),
+  postGenerations: many(brandPostGenerations),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -59,6 +68,10 @@ export const brandsRelations = relations(brands, ({ one, many }) => ({
   auditLogs: many(brandAuditLogs),
   memeGenerations: many(memeGenerations),
   aiHistory: many(brandAiHistory),
+  postSessions: many(brandGenerationSessions),
+  postGenerations: many(brandPostGenerations),
+  postVariations: many(brandPostVariations),
+  generationMemories: many(brandGenerationMemories),
 }));
 
 export const brandMembersRelations = relations(brandMembers, ({ one }) => ({
@@ -174,8 +187,9 @@ export const brandStatsRelations = relations(brandStats, ({ one }) => ({
   brand: one(brands, { fields: [brandStats.brand_id], references: [brands.id] }),
 }));
 
-export const cloudAssetsRelations = relations(cloudAssets, ({ one }) => ({
+export const cloudAssetsRelations = relations(cloudAssets, ({ one, many }) => ({
   owner: one(users, { fields: [cloudAssets.owner_id], references: [users.id] }),
+  imageVersions: many(brandPostImageVersions),
 }));
 
 export const memeGenerationsRelations = relations(memeGenerations, ({ one }) => ({
@@ -188,3 +202,39 @@ export const brandAiHistoryRelations = relations(brandAiHistory, ({ one }) => ({
   user: one(users, { fields: [brandAiHistory.user_id], references: [users.id] }),
 }));
 
+// --- Brand Post System Relations ---
+
+export const brandGenerationSessionsRelations = relations(brandGenerationSessions, ({ one, many }) => ({
+  brand: one(brands, { fields: [brandGenerationSessions.brand_id], references: [brands.id] }),
+  user: one(users, { fields: [brandGenerationSessions.user_id], references: [users.id] }),
+  generations: many(brandPostGenerations),
+  variations: many(brandPostVariations),
+  memories: many(brandGenerationMemories),
+}));
+
+export const brandPostGenerationsRelations = relations(brandPostGenerations, ({ one, many }) => ({
+  session: one(brandGenerationSessions, { fields: [brandPostGenerations.session_id], references: [brandGenerationSessions.id] }),
+  brand: one(brands, { fields: [brandPostGenerations.brand_id], references: [brands.id] }),
+  user: one(users, { fields: [brandPostGenerations.user_id], references: [users.id] }),
+  variations: many(brandPostVariations),
+}));
+
+export const brandPostVariationsRelations = relations(brandPostVariations, ({ one, many }) => ({
+  generation: one(brandPostGenerations, { fields: [brandPostVariations.generation_id], references: [brandPostGenerations.id] }),
+  session: one(brandGenerationSessions, { fields: [brandPostVariations.session_id], references: [brandGenerationSessions.id] }),
+  brand: one(brands, { fields: [brandPostVariations.brand_id], references: [brands.id] }),
+  imageVersions: many(brandPostImageVersions),
+  activeVersion: one(brandPostImageVersions, { fields: [brandPostVariations.active_version_id], references: [brandPostImageVersions.id] }),
+}));
+
+export const brandPostImageVersionsRelations = relations(brandPostImageVersions, ({ one, many }) => ({
+  variation: one(brandPostVariations, { fields: [brandPostImageVersions.variation_id], references: [brandPostVariations.id] }),
+  parentVersion: one(brandPostImageVersions, { fields: [brandPostImageVersions.parent_version_id], references: [brandPostImageVersions.id], relationName: "ImageVersionTree" }),
+  childVersions: many(brandPostImageVersions, { relationName: "ImageVersionTree" }),
+  asset: one(cloudAssets, { fields: [brandPostImageVersions.asset_id], references: [cloudAssets.id] }),
+}));
+
+export const brandGenerationMemoriesRelations = relations(brandGenerationMemories, ({ one }) => ({
+  session: one(brandGenerationSessions, { fields: [brandGenerationMemories.session_id], references: [brandGenerationSessions.id] }),
+  brand: one(brands, { fields: [brandGenerationMemories.brand_id], references: [brands.id] }),
+}));

@@ -14,4 +14,5 @@ export * as notificationRepository from "./notification.repository";
 export * as statsRepository from "./stats.repository";
 export * as cloudAssetRepository from "./cloud-asset.repository";
 export * as accountRepository from "./account.repository";
+export * as brandPostRepository from "./brand-post.repository";
 

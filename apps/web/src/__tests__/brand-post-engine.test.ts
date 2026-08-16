@@ -6,6 +6,7 @@ import {
   buildBrandPostConceptSystemPrompt,
   buildBrandPostConceptUserPrompt,
 } from "@virlio/ai";
+import { normalizeConceptOutput } from "../server/services/brand-post-engine.service";
 
 async function runBrandPostEngineTests() {
   console.log("🧪 Running Brand Visual Profile & 4-Variation Concept Engine Tests...");
@@ -203,12 +204,34 @@ async function runBrandPostEngineTests() {
 
   const parsedBatch = BrandPost4VariationsOutputSchema.parse(sample4VariationsOutput);
   assert.strictEqual(parsedBatch.variations.length, 4);
-  assert.strictEqual(parsedBatch.variations[0].creative_direction, "product_hero");
-  assert.strictEqual(parsedBatch.variations[1].creative_direction, "lifestyle");
-  assert.strictEqual(parsedBatch.variations[2].creative_direction, "editorial");
-  assert.strictEqual(parsedBatch.variations[3].creative_direction, "bold_social");
 
   console.log("✓ Test 4 Passed: 4-Variation output schema parses and validates 4 distinct creative concepts");
+
+  // Test 5: Resilient LLM Output Normalizer (Handles camelCase, wrapped objects, missing fields)
+  const messyLlmResponse = {
+    campaignTheme: "Unmatched Clarity",
+    focusSummary: "Everyday sound with noise cancellation",
+    variations: [
+      {
+        variationNumber: 1,
+        title: "The Sound Of Silence",
+        description: "Studio shot of the headphones on stone pedestal",
+        prompt: "Commercial photo of headphones on dark stone pedestal",
+      },
+    ],
+  };
+
+  const normalized = normalizeConceptOutput(messyLlmResponse, "Default prompt", parsedProfile);
+  assert.strictEqual(normalized.variations.length, 4);
+  assert.strictEqual(normalized.campaign_theme, "Unmatched Clarity");
+  assert.strictEqual(normalized.variations[0].creative_direction, "product_hero");
+  assert.strictEqual(normalized.variations[1].creative_direction, "lifestyle");
+  assert.strictEqual(normalized.variations[2].creative_direction, "editorial");
+  assert.strictEqual(normalized.variations[3].creative_direction, "bold_social");
+  assert.ok(normalized.variations[0].diffusion_prompt.length > 10);
+  assert.ok(normalized.variations[1].diffusion_prompt.length > 10);
+
+  console.log("✓ Test 5 Passed: normalizeConceptOutput converts camelCase and partial LLM outputs into 4 valid concepts");
   console.log("🎉 All Brand Visual Profile & 4-Variation Concept Engine Tests Passed!");
 }
 

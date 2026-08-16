@@ -1,4 +1,4 @@
-import { brandRepository } from "@/server/repositories";
+import * as brandRepository from "../repositories/brand.repository";
 import { BrandVisualProfile, BrandVisualProfileSchema } from "@virlio/ai";
 
 /**

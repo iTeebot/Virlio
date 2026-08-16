@@ -154,7 +154,7 @@ export default function CreateBrandPostPage() {
   // 3. Handle Generation Submit (Stage 1 + Stage 2)
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim() || isGenerating) return;
+    if (isGenerating) return;
 
     try {
       setIsGenerating(true);

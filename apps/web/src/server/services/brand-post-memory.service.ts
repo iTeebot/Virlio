@@ -1,4 +1,5 @@
-import { brandRepository, brandPostRepository } from "@/server/repositories";
+import * as brandRepository from "../repositories/brand.repository";
+import * as brandPostRepository from "../repositories/brand-post.repository";
 import {
   globalConversationMemory,
   globalModelRegistry,

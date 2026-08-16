@@ -20,7 +20,7 @@ export const DEFAULT_MODEL_REGISTRY: ModelCapability[] = [
   },
   {
     provider: "groq",
-    modelId: "llama-3.2-11b-vision-preview",
+    modelId: "llama-3.2-11b-vision",
     displayName: "Groq Llama 3.2 11B Vision",
     contextWindow: 128000,
     maxOutputTokens: 4096,

@@ -35,8 +35,78 @@ CRITICAL ARCHITECTURAL & DESIGN RULES:
    - Provide a rich, photorealistic, descriptive text-to-image prompt (diffusion_prompt) for each variation suitable for state-of-the-art diffusion models (Flux 1.1 / Recraft v3 / Imagen 3).
    - Explicitly include camera angle, lighting type (e.g. "soft natural morning light", "crisp high-key studio lighting"), background surface color in hex, and material details.
 
-5. OUTPUT FORMAT:
-   - Output ONLY a valid JSON object strictly conforming to the required schema. No conversational preamble or markdown backticks if possible.`;
+5. EXACT OUTPUT FORMAT:
+You MUST respond with a JSON object strictly matching this schema:
+{
+  "campaign_theme": "Short campaign theme title",
+  "focus_summary": "1-2 sentence summary of this creative post set",
+  "variations": [
+    {
+      "variation_index": 1,
+      "creative_direction": "product_hero",
+      "direction_label": "Studio Product Hero",
+      "concept_title": "Headline / Concept Title",
+      "concept_description": "2-3 sentence concept description",
+      "visual_scene_description": "Detailed scene visual description for the photographer/designer",
+      "diffusion_prompt": "Rich commercial diffusion prompt with camera, lighting, solid hex color background, and crisp textures",
+      "negative_prompt": "gradients, blurry, low resolution, distorted text",
+      "headline_text": "Short punchy headline copy",
+      "body_copy": "Supporting body text copy",
+      "caption_copy": "Complete social media caption copy",
+      "hashtags": ["#Brand", "#Topic"],
+      "suggested_layout": "center_hero",
+      "color_accents_used": ["#2563EB"]
+    },
+    {
+      "variation_index": 2,
+      "creative_direction": "lifestyle",
+      "direction_label": "In-Situ Lifestyle",
+      "concept_title": "...",
+      "concept_description": "...",
+      "visual_scene_description": "...",
+      "diffusion_prompt": "...",
+      "negative_prompt": "gradients, blurry",
+      "headline_text": "...",
+      "body_copy": "...",
+      "caption_copy": "...",
+      "hashtags": ["#Lifestyle"],
+      "suggested_layout": "split_left_text",
+      "color_accents_used": ["#F59E0B"]
+    },
+    {
+      "variation_index": 3,
+      "creative_direction": "editorial",
+      "direction_label": "Minimalist Editorial",
+      "concept_title": "...",
+      "concept_description": "...",
+      "visual_scene_description": "...",
+      "diffusion_prompt": "...",
+      "negative_prompt": "gradients, clutter",
+      "headline_text": "...",
+      "body_copy": "...",
+      "caption_copy": "...",
+      "hashtags": ["#Design"],
+      "suggested_layout": "minimal_bottom_text",
+      "color_accents_used": ["#0F172A"]
+    },
+    {
+      "variation_index": 4,
+      "creative_direction": "bold_social",
+      "direction_label": "Bold Social Hook",
+      "concept_title": "...",
+      "concept_description": "...",
+      "visual_scene_description": "...",
+      "diffusion_prompt": "...",
+      "negative_prompt": "gradients, rainbow",
+      "headline_text": "...",
+      "body_copy": "...",
+      "caption_copy": "...",
+      "hashtags": ["#Trending"],
+      "suggested_layout": "clean_visual_only",
+      "color_accents_used": ["#2563EB", "#F59E0B"]
+    }
+  ]
+}`;
 }
 
 export function buildBrandPostConceptUserPrompt(
@@ -58,6 +128,8 @@ export function buildBrandPostConceptUserPrompt(
     catalogContext.push(`Available Services: ${profile.catalog.services.slice(0, 8).join(", ")}`);
   }
 
+  const userReq = options.userPrompt?.trim() || "Create an engaging branded social post showcasing our core value proposition, key offerings, and brand personality.";
+
   return `GENERATE 4 CREATIVE POST VARIATIONS FOR:
 
 [BRAND IDENTITY]
@@ -71,11 +143,11 @@ export function buildBrandPostConceptUserPrompt(
 ${catalogContext.length > 0 ? `\n[CATALOG & OFFERINGS]\n${catalogContext.join("\n")}` : ""}
 
 [POST REQUIREMENTS]
-- User Request: "${options.userPrompt}"
+- User Request: "${userReq}"
 ${options.campaignGoal ? `- Campaign Goal: "${options.campaignGoal}"` : ""}
 ${options.targetAudience ? `- Target Audience: "${options.targetAudience}"` : ""}
 - Target Platform: ${platform}
 - Target Aspect Ratio: ${aspectRatio}
 
-Synthesize 4 creative variations (product_hero, lifestyle, editorial, bold_social) and output the JSON object matching the BrandPost4VariationsOutput schema.`;
+Synthesize 4 creative variations (product_hero, lifestyle, editorial, bold_social) and output the JSON object matching the BrandPost4VariationsOutput schema with all keys: campaign_theme, focus_summary, and variations array.`;
 }

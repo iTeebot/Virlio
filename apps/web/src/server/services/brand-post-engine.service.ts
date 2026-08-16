@@ -1,4 +1,4 @@
-import { brandPostRepository } from "@/server/repositories";
+import * as brandPostRepository from "../repositories/brand-post.repository";
 import { getBrandVisualProfile } from "./brand-visual-profile.service";
 import {
   globalModelRouter,
@@ -10,6 +10,7 @@ import {
   buildBrandPostConceptUserPrompt,
   BrandPost4VariationsOutputSchema,
   BrandPost4VariationsOutput,
+  BrandVisualProfile,
   AIProviderError,
 } from "@virlio/ai";
 
@@ -46,6 +47,170 @@ const fallbackHandler = new FallbackHandler(globalModelRouter);
 fallbackHandler.registerAdapter(new GroqAdapter());
 fallbackHandler.registerAdapter(new MistralAdapter());
 fallbackHandler.registerAdapter(new OpenRouterAdapter());
+
+/**
+ * Resiliently normalizes raw LLM output into a guaranteed BrandPost4VariationsOutput structure.
+ * Handles snake_case vs camelCase, nested wrappers, arrays, and missing fields.
+ */
+export function normalizeConceptOutput(
+  raw: any,
+  userPrompt: string,
+  profile: BrandVisualProfile
+): BrandPost4VariationsOutput {
+  if (!raw || typeof raw !== "object") {
+    raw = {};
+  }
+
+  // 1. Extract raw variations array from potential wrappers
+  let rawList: any[] = [];
+  if (Array.isArray(raw)) {
+    rawList = raw;
+  } else if (Array.isArray(raw.variations)) {
+    rawList = raw.variations;
+  } else if (Array.isArray(raw.concepts)) {
+    rawList = raw.concepts;
+  } else if (Array.isArray(raw.posts)) {
+    rawList = raw.posts;
+  } else if (raw.data && typeof raw.data === "object") {
+    if (Array.isArray(raw.data.variations)) rawList = raw.data.variations;
+    else if (Array.isArray(raw.data.concepts)) rawList = raw.data.concepts;
+  }
+
+  const campaignTheme =
+    raw.campaign_theme ||
+    raw.campaignTheme ||
+    raw.theme ||
+    raw.title ||
+    `${profile.brandName} Social Campaign`;
+
+  const focusSummary =
+    raw.focus_summary ||
+    raw.focusSummary ||
+    raw.summary ||
+    raw.description ||
+    `4 diverged creative visual directions crafted for ${profile.brandName}.`;
+
+  const defaultDirections: Array<"product_hero" | "lifestyle" | "editorial" | "bold_social"> = [
+    "product_hero",
+    "lifestyle",
+    "editorial",
+    "bold_social",
+  ];
+
+  const defaultLabels = [
+    "Studio Product Hero",
+    "In-Situ Lifestyle",
+    "Minimalist Editorial",
+    "Bold Social Hook",
+  ];
+
+  const normalizedVariations = defaultDirections.map((dir, idx) => {
+    const item = rawList[idx] || {};
+
+    const creativeDirection =
+      item.creative_direction ||
+      item.creativeDirection ||
+      item.direction ||
+      item.type ||
+      dir;
+
+    const directionLabel =
+      item.direction_label ||
+      item.directionLabel ||
+      item.label ||
+      defaultLabels[idx];
+
+    const conceptTitle =
+      item.concept_title ||
+      item.conceptTitle ||
+      item.title ||
+      item.headline ||
+      `${directionLabel} - ${profile.brandName}`;
+
+    const conceptDescription =
+      item.concept_description ||
+      item.conceptDescription ||
+      item.description ||
+      `Creative concept executing the ${directionLabel} angle for ${profile.brandName}.`;
+
+    const visualSceneDescription =
+      item.visual_scene_description ||
+      item.visualSceneDescription ||
+      item.visual_description ||
+      item.scene ||
+      `Studio commercial photography with solid background in ${profile.colors.primary}, clean lighting, high detail.`;
+
+    const diffusionPrompt =
+      item.diffusion_prompt ||
+      item.diffusionPrompt ||
+      item.prompt ||
+      `Commercial high-resolution branded post photography, solid ${profile.colors.primary} and ${profile.colors.darkBackground} backdrop, crisp studio rim light, 8k resolution, elegant composition.`;
+
+    const negativePrompt =
+      item.negative_prompt ||
+      item.negativePrompt ||
+      "gradients, blurry, low resolution, distorted text, cluttered";
+
+    const headlineText =
+      item.headline_text ||
+      item.headlineText ||
+      item.headline ||
+      conceptTitle;
+
+    const bodyCopy =
+      item.body_copy ||
+      item.bodyCopy ||
+      item.body ||
+      item.copy ||
+      null;
+
+    const captionCopy =
+      item.caption_copy ||
+      item.captionCopy ||
+      item.caption ||
+      `${conceptTitle}. Discover more with ${profile.brandName}.`;
+
+    const hashtags = Array.isArray(item.hashtags)
+      ? item.hashtags
+      : [`#${profile.brandName.replace(/\s+/g, "")}`, "#BrandedContent"];
+
+    const suggestedLayout = (item.suggested_layout ||
+      item.suggestedLayout ||
+      item.layout ||
+      "center_hero") as any;
+
+    const colorAccentsUsed = Array.isArray(item.color_accents_used || item.colorAccentsUsed)
+      ? (item.color_accents_used || item.colorAccentsUsed)
+      : [profile.colors.primary, profile.colors.accent];
+
+    return {
+      variation_index: idx + 1,
+      creative_direction: dir,
+      direction_label: directionLabel,
+      concept_title: conceptTitle,
+      concept_description: conceptDescription,
+      visual_scene_description: visualSceneDescription,
+      diffusion_prompt: diffusionPrompt,
+      negative_prompt: negativePrompt,
+      headline_text: headlineText,
+      body_copy: bodyCopy,
+      caption_copy: captionCopy,
+      hashtags,
+      suggested_layout: ["center_hero", "split_left_text", "split_right_text", "minimal_bottom_text", "clean_visual_only"].includes(suggestedLayout)
+        ? suggestedLayout
+        : "center_hero",
+      color_accents_used: colorAccentsUsed,
+    };
+  });
+
+  const structured = {
+    campaign_theme: campaignTheme,
+    focus_summary: focusSummary,
+    variations: normalizedVariations,
+  };
+
+  return BrandPost4VariationsOutputSchema.parse(structured);
+}
 
 export async function generatePostVariations(
   input: GeneratePostVariationsInput
@@ -110,8 +275,13 @@ export async function generatePostVariations(
           );
         }
 
-        // Validate strictly against BrandPost4VariationsOutputSchema
-        const validated = BrandPost4VariationsOutputSchema.parse(response.parsedJson);
+        // Resiliently normalize and validate output
+        const validated = normalizeConceptOutput(
+          response.parsedJson,
+          input.userPrompt,
+          visualProfile
+        );
+
         return {
           validated,
           tokenUsage: response.tokenUsage,

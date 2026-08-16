@@ -1,4 +1,5 @@
-import { brandPostRepository, cloudAssetRepository } from "@/server/repositories";
+import * as brandPostRepository from "../repositories/brand-post.repository";
+import * as cloudAssetRepository from "../repositories/cloud-asset.repository";
 import { uploadBufferToCloudinary } from "@/lib/cloudinary/upload";
 import { getBrandVisualProfile } from "./brand-visual-profile.service";
 import {

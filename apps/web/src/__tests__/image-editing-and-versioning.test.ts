@@ -108,8 +108,8 @@ async function runImageEditingAndVersioningTests() {
   });
 
   assert.strictEqual(editRoute.supportsImageEditing, true);
+  assert.strictEqual(editRoute.provider, "mistral");
   assert.notStrictEqual(editRoute.provider, "groq");
-  assert.notStrictEqual(editRoute.provider, "mistral");
   assert.notStrictEqual(editRoute.modelId, "black-forest-labs/flux-1.1-pro"); // Flux doesn't support inpainting/editing
 
   console.log("✓ Test 3 Passed: Editing operations strictly reject text models and generation-only diffusion models");

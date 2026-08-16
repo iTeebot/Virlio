@@ -55,11 +55,11 @@ async function runModelRouterAndCapabilitiesTests() {
   assert.strictEqual(ideationRoute.provider, "mistral");
   assert.strictEqual(ideationRoute.supportsStructuredOutput, true);
 
-  // 3b: Image Generation routes to Flux / Recraft (NOT Groq or Mistral)
+  // 3b: Image Generation routes to Mistral Image Agent Priority 1 (NOT Groq)
   const imageGenRoute = router.selectRoute({ operation: "IMAGE_GENERATION" });
   assert.strictEqual(imageGenRoute.supportsImageGeneration, true);
+  assert.strictEqual(imageGenRoute.provider, "mistral");
   assert.notStrictEqual(imageGenRoute.provider, "groq");
-  assert.notStrictEqual(imageGenRoute.provider, "mistral");
 
   // 3c: Image Editing routes to Recraft / Imagen 3 (Never text-only or Flux 1.1)
   const imageEditRoute = router.selectRoute({ operation: "IMAGE_EDITING" });

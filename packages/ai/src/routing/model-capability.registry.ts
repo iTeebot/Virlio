@@ -83,7 +83,23 @@ export const DEFAULT_MODEL_REGISTRY: ModelCapability[] = [
     status: "active",
   },
 
-  // --- Multimodal Image Generation & Inpainting Models ---
+  // --- Multimodal Image Generation & Inpainting Models (Mistral Priority 1) ---
+  {
+    provider: "mistral",
+    modelId: "mistral-medium-latest",
+    displayName: "Mistral Image Synthesis Agent",
+    contextWindow: 32000,
+    maxOutputTokens: 1024,
+    supportsVision: true,
+    supportsImageGeneration: true,
+    supportsImageEditing: true,
+    supportsStructuredOutput: false,
+    supportsStreaming: false,
+    supportsToolCalling: true,
+    latencyTier: "standard",
+    priority: 1,
+    status: "active",
+  },
   {
     provider: "openrouter",
     modelId: "black-forest-labs/flux.2-pro",
@@ -97,7 +113,7 @@ export const DEFAULT_MODEL_REGISTRY: ModelCapability[] = [
     supportsStreaming: false,
     supportsToolCalling: false,
     latencyTier: "standard",
-    priority: 1,
+    priority: 2,
     status: "active",
   },
   {

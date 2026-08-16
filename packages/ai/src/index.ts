@@ -6,6 +6,7 @@ export * from "./memory/context-window.manager";
 export * from "./memory/conversation-memory";
 export * from "./schemas/brand-post.schema";
 export * from "./prompts/brand-post-concept.prompt";
+export * from "./prompts/image-editing.prompt";
 export * from "./providers/groq.adapter";
 export * from "./providers/mistral.adapter";
 export * from "./providers/openrouter.adapter";

@@ -20,3 +20,5 @@ export * as generationAnalytics from "./meme-engine/generation-analytics";
 export * as brandPostMemoryService from "./brand-post-memory.service";
 export * as brandVisualProfileService from "./brand-visual-profile.service";
 export * as brandPostEngineService from "./brand-post-engine.service";
+export * as brandImageSynthesisService from "./brand-image-synthesis.service";
+export * as brandImageEditingService from "./brand-image-editing.service";

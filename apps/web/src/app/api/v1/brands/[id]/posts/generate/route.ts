@@ -32,10 +32,15 @@ export async function POST(req: NextRequest, context: RouteParams) {
     const body = await req.json();
     const parsed = generatePostBatchSchema.parse(body);
 
-    // Safety and profanity check on prompt
-    const safetyCheck = validateSafetyAndProfanity(parsed.user_prompt);
-    if (!safetyCheck.isValid) {
-      return apiError(`Safety violation in prompt: ${safetyCheck.reason}`, 400);
+    const effectivePrompt = (parsed.user_prompt || "").trim() ||
+      "Create an engaging branded social post showcasing our core value proposition, key offerings, and brand personality.";
+
+    // Safety and profanity check on prompt if provided
+    if (parsed.user_prompt?.trim()) {
+      const safetyCheck = validateSafetyAndProfanity(parsed.user_prompt);
+      if (!safetyCheck.isValid) {
+        return apiError(`Safety violation in prompt: ${safetyCheck.reason}`, 400);
+      }
     }
 
     // 1. Stage 1: Generate 4 Distinct Creative Concepts
@@ -43,7 +48,7 @@ export async function POST(req: NextRequest, context: RouteParams) {
       sessionId: parsed.session_id,
       brandId,
       userId: session.user.id,
-      userPrompt: parsed.user_prompt,
+      userPrompt: effectivePrompt,
       campaignGoal: parsed.campaign_goal || undefined,
       targetAudience: parsed.target_audience || undefined,
       targetPlatform: parsed.target_platform,

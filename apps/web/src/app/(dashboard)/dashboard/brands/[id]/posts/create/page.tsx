@@ -329,15 +329,14 @@ export default function CreateBrandPostPage() {
               {/* Campaign Title */}
               <div>
                 <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Campaign / Session Name
+                  Campaign / Session Name (Optional)
                 </label>
                 <input
                   type="text"
                   value={sessionTitle}
                   onChange={(e) => setSessionTitle(e.target.value)}
-                  placeholder="e.g. Q3 Summer Launch"
+                  placeholder="e.g. Q3 Summer Launch (or leave blank)"
                   className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-600 focus:bg-white"
-                  required
                 />
               </div>
 
@@ -392,15 +391,14 @@ export default function CreateBrandPostPage() {
               {/* Creative Prompt */}
               <div>
                 <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Creative Direction / Theme
+                  Creative Direction / Theme (Optional)
                 </label>
                 <textarea
                   rows={4}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="e.g. Announce our summer flash sale with high-energy visuals and premium product clarity..."
+                  placeholder="Optional: Describe a specific theme, or leave blank to let Virlio auto-synthesize concepts from your verified brand profile..."
                   className="w-full p-3 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-600 focus:bg-white resize-none"
-                  required
                 />
               </div>
 
@@ -427,7 +425,7 @@ export default function CreateBrandPostPage() {
 
               <button
                 type="submit"
-                disabled={isGenerating || !prompt.trim()}
+                disabled={isGenerating}
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
               >
                 {isGenerating ? (
@@ -438,7 +436,7 @@ export default function CreateBrandPostPage() {
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 text-amber-300" />
-                    <span>Generate 4 Post Variations</span>
+                    <span>{prompt.trim() ? "Generate 4 Post Variations" : "Auto-Generate 4 Branded Posts (1-Click)"}</span>
                   </>
                 )}
               </button>

@@ -17,6 +17,10 @@ export async function update(brandId: string, userId: string, data: Partial<Bran
   return brandRepository.update(brandId, data);
 }
 
+export async function getUserRole(brandId: string, userId: string) {
+  return brandRepository.getUserRoleForBrand(brandId, userId);
+}
+
 import { calculateBrandTrustScore } from "@/lib/services/brand-trust-score.service";
 
 export async function getBySlug(slug: string) {

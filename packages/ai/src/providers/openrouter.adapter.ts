@@ -148,7 +148,7 @@ export class OpenRouterAdapter implements AIProviderAdapter {
     const timeout = setTimeout(() => controller.abort(), 60000);
 
     try {
-      const res = await fetch("https://openrouter.ai/api/v1/images/generations", {
+      let res = await fetch("https://openrouter.ai/api/v1/images", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -159,6 +159,21 @@ export class OpenRouterAdapter implements AIProviderAdapter {
         body: JSON.stringify(payload),
         signal: options.abortSignal || controller.signal,
       });
+
+      if (!res.ok && res.status === 404) {
+        // Retry with generations path
+        res = await fetch("https://openrouter.ai/api/v1/images/generations", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://virlio.com",
+            "X-Title": "Virlio Brand Studio",
+          },
+          body: JSON.stringify(payload),
+          signal: options.abortSignal || controller.signal,
+        });
+      }
 
       if (!res.ok) {
         const errorText = await res.text().catch(() => "");

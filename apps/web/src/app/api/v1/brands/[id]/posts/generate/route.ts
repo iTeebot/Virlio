@@ -66,15 +66,24 @@ export async function POST(req: NextRequest, context: RouteParams) {
       const synthesisItems = conceptResult.variations.map((v: any) => ({
         variationId: v.id,
         diffusionPrompt: `${v.concept_description}. High aesthetic, solid colors (${visualProfile.colors.primary}), commercial studio quality.`,
+        conceptTitle: v.concept_title,
+        headlineText: v.headline_text,
+        creativeDirection: v.creative_direction,
       }));
 
       synthesizedImages = await brandImageSynthesisService.synthesizeBatchVariationImages(
         synthesisItems,
         {
           brandId,
+          brandName: visualProfile.brandName,
           sessionId: parsed.session_id,
           aspectRatio: parsed.aspect_ratio,
-          brandColors: [visualProfile.colors.primary, visualProfile.colors.secondary, visualProfile.colors.accent],
+          brandColors: [
+            visualProfile.colors.primary,
+            visualProfile.colors.secondary,
+            visualProfile.colors.accent,
+            visualProfile.colors.darkBackground,
+          ],
         }
       );
     }

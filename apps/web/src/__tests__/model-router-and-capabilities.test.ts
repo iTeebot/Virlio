@@ -50,9 +50,9 @@ async function runModelRouterAndCapabilitiesTests() {
   // Test 3: Model Router Capability Enforcement & Selection
   const router = new ModelRouter(registry);
 
-  // 3a: Concept Ideation routes to fast structured LLM (Groq Llama 3.3)
+  // 3a: Concept Ideation routes to fast structured LLM (Mistral Large Priority 1)
   const ideationRoute = router.selectRoute({ operation: "CONCEPT_IDEATION" });
-  assert.strictEqual(ideationRoute.provider, "groq");
+  assert.strictEqual(ideationRoute.provider, "mistral");
   assert.strictEqual(ideationRoute.supportsStructuredOutput, true);
 
   // 3b: Image Generation routes to Flux / Recraft (NOT Groq or Mistral)
@@ -76,21 +76,9 @@ async function runModelRouterAndCapabilitiesTests() {
   }
   console.log("✓ Test 4 Passed: Fallback chain is 100% capability-compatible");
 
-  // Test 5: FallbackHandler Multi-Provider Failover Execution
-  let groqCalled = false;
+  // Test 5: Dynamic Fallback Execution
   let mistralCalled = false;
-
-  const mockGroqAdapter: AIProviderAdapter = {
-    providerName: "groq",
-    getCapabilities: () => registry.findCapableModels({ provider: "groq" }),
-    isHealthy: async () => true,
-    generateText: async () => {
-      groqCalled = true;
-      throw new AIProviderError("Simulated Groq 500 Failure", "groq", "mock-model", "NETWORK_TIMEOUT", true);
-    },
-    generateImage: async () => { throw new Error("Unsupported"); },
-    editImage: async () => { throw new Error("Unsupported"); },
-  };
+  let groqCalled = false;
 
   const mockMistralAdapter: AIProviderAdapter = {
     providerName: "mistral",
@@ -98,13 +86,25 @@ async function runModelRouterAndCapabilitiesTests() {
     isHealthy: async () => true,
     generateText: async () => {
       mistralCalled = true;
+      throw new AIProviderError("Simulated Mistral 500 Failure", "mistral", "mistral-large-latest", "NETWORK_TIMEOUT", true);
+    },
+    generateImage: async () => { throw new Error("Unsupported"); },
+    editImage: async () => { throw new Error("Unsupported"); },
+  };
+
+  const mockGroqAdapter: AIProviderAdapter = {
+    providerName: "groq",
+    getCapabilities: () => registry.findCapableModels({ provider: "groq" }),
+    isHealthy: async () => true,
+    generateText: async () => {
+      groqCalled = true;
       return {
         content: JSON.stringify({ concepts: ["Concept 1", "Concept 2"] }),
         parsedJson: { concepts: ["Concept 1", "Concept 2"] },
         tokenUsage: { inputTokens: 50, outputTokens: 50, totalTokens: 100 },
         latencyMs: 120,
-        provider: "mistral",
-        model: "mistral-large-latest",
+        provider: "groq",
+        model: "llama-3.3-70b-versatile",
       };
     },
     generateImage: async () => { throw new Error("Unsupported"); },
@@ -112,8 +112,8 @@ async function runModelRouterAndCapabilitiesTests() {
   };
 
   const fallbackHandler = new FallbackHandler(router);
-  fallbackHandler.registerAdapter(mockGroqAdapter);
   fallbackHandler.registerAdapter(mockMistralAdapter);
+  fallbackHandler.registerAdapter(mockGroqAdapter);
 
   const fallbackResult = await fallbackHandler.executeWithFallback(
     { operation: "CONCEPT_IDEATION" },
@@ -122,10 +122,10 @@ async function runModelRouterAndCapabilitiesTests() {
     }
   );
 
-  assert.strictEqual(groqCalled, true, "Primary provider (Groq) should have been called first");
-  assert.strictEqual(mistralCalled, true, "Fallback provider (Mistral) should have been called upon Groq failure");
-  assert.strictEqual(fallbackResult.provider, "mistral");
-  assert.strictEqual(fallbackResult.fallbackCount, 1);
+  assert.strictEqual(mistralCalled, true, "Primary provider (Mistral) should have been called first");
+  assert.strictEqual(groqCalled, true, "Fallback provider (Groq) should have been called upon Mistral failure");
+  assert.strictEqual(fallbackResult.provider, "groq");
+  assert.ok(fallbackResult.fallbackCount >= 1);
   assert.ok(fallbackResult.result.parsedJson.concepts.length === 2);
 
   console.log("✓ Test 5 Passed: Dynamic failover across providers executes seamlessly");

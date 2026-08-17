@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useBrand } from "@/components/dashboard/brand-context";
 import { BrandVisualSummary } from "@/components/brands/posts/brand-visual-summary";
@@ -16,12 +16,15 @@ import {
   Share2,
   Layers,
   CheckCircle2,
+  Plus,
+  RotateCcw,
 } from "lucide-react";
 import { BrandVisualProfile } from "@virlio/ai";
 
 export default function CreateBrandPostPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const brandId = params.id as string;
   const { currentBrand } = useBrand();
 
@@ -49,7 +52,19 @@ export default function CreateBrandPostPage() {
   const [selectedVariation, setSelectedVariation] = useState<any | null>(null);
   const [variationVersions, setVariationVersions] = useState<any[]>([]);
 
-  // 1. Fetch Brand Visual Profile
+  // Reset to clean state for a new campaign
+  const handleStartFresh = () => {
+    setActiveSessionId(null);
+    setGenerationResult(null);
+    setSelectedVariation(null);
+    setVariationVersions([]);
+    setPrompt("");
+    setCampaignGoal("");
+    setSessionTitle("New Post Campaign");
+    router.replace(`/dashboard/brands/${brandId}/posts/create`);
+  };
+
+  // 1a. Fetch Brand Visual Profile
   useEffect(() => {
     async function loadBrandProfile() {
       if (!brandId) return;
@@ -133,6 +148,75 @@ export default function CreateBrandPostPage() {
 
     loadBrandProfile();
   }, [brandId]);
+
+  // 1b. Load Existing Session if sessionId is in query params
+  useEffect(() => {
+    async function loadExistingSession() {
+      const sid = searchParams.get("sessionId") || searchParams.get("session");
+      if (!sid || !brandId || activeSessionId === sid) return;
+
+      try {
+        const res = await fetch(`/api/v1/brands/${brandId}/posts/sessions/${sid}`);
+        if (res.ok) {
+          const json = await res.json();
+          const sess = json.data;
+          if (sess) {
+            setActiveSessionId(sess.id);
+            if (sess.title) setSessionTitle(sess.title);
+            if (sess.focus_type) setFocusType(sess.focus_type);
+            if (sess.selected_product) setSelectedProduct(sess.selected_product);
+            if (sess.selected_service) setSelectedService(sess.selected_service);
+            if (sess.target_platform) setTargetPlatform(sess.target_platform);
+            if (sess.aspect_ratio) setAspectRatio(sess.aspect_ratio);
+
+            const latestGen = sess.generations?.[0];
+            if (latestGen && latestGen.variations?.length > 0) {
+              const variations = latestGen.variations.map((v: any) => {
+                const activeVer = v.activeVersion || v.imageVersions?.[0];
+                return {
+                  id: v.id,
+                  variation_index: v.variation_index,
+                  creative_direction: v.creative_direction,
+                  concept_title: v.concept_title,
+                  concept_description: v.concept_description,
+                  headline_text: v.headline_text,
+                  body_copy: v.body_copy,
+                  caption_copy: v.caption_copy,
+                  hashtags: v.hashtags,
+                  is_approved: v.is_approved,
+                  is_selected: v.is_selected,
+                  active_version: activeVer
+                    ? {
+                        id: activeVer.id,
+                        version_number: activeVer.version_number,
+                        image_url: activeVer.image_url || activeVer.asset?.secure_url,
+                        thumbnail_url: activeVer.thumbnail_url || activeVer.asset?.secure_url,
+                        aspect_ratio: activeVer.aspect_ratio || sess.aspect_ratio || "1:1",
+                      }
+                    : null,
+                };
+              });
+
+              setGenerationResult({
+                generationId: latestGen.id,
+                sessionId: sess.id,
+                brandId,
+                campaignTheme: sess.title,
+                focusSummary: latestGen.user_prompt || "",
+                variations,
+              });
+
+              setSelectedVariation(variations[0]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load existing session:", err);
+      }
+    }
+
+    loadExistingSession();
+  }, [brandId, searchParams, activeSessionId]);
 
   // 2. Fetch Version History when a variation is selected
   useEffect(() => {
@@ -226,6 +310,7 @@ export default function CreateBrandPostPage() {
       if (variations.length > 0) {
         setSelectedVariation(variations[0]);
       }
+      router.replace(`/dashboard/brands/${brandId}/posts/create?sessionId=${sessionId}`, { scroll: false });
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred during generation");
     } finally {
@@ -325,6 +410,17 @@ export default function CreateBrandPostPage() {
             </p>
           </div>
         </div>
+
+        {(generationResult || activeSessionId) && (
+          <button
+            type="button"
+            onClick={handleStartFresh}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 shadow-2xs transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Campaign</span>
+          </button>
+        )}
       </div>
 
       {/* Brand Visual Identity Summary */}

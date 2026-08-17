@@ -144,7 +144,7 @@ export default function BrandPostsLandingPage() {
                   </span>
 
                   <Link
-                    href={`/dashboard/brands/${brandId}/posts/create`}
+                    href={`/dashboard/brands/${brandId}/posts/create?sessionId=${sess.id}`}
                     className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700"
                   >
                     <span>Open Studio</span>
